@@ -1,0 +1,13 @@
+{
+  "name": "focus-clock",
+  "version": "1.0.0",
+  "description": "適合升大學專題展示的自律番茄鐘桌面程式",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/logic.test.js"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0"
+  }
+}

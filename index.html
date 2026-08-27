@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <title>專注番茄鐘</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">番</div>
+        <div>
+          <p>FOCUS CLOCK</p>
+          <h1>專注番茄鐘</h1>
+        </div>
+      </div>
+      <div class="clock-card" aria-label="現在時間">
+        <span>現在時間</span>
+        <strong id="live-clock">--:--</strong>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <span class="eyebrow">每天進步一點點</span>
+        <h2>把時間留給<br><em>真正重要的事。</em></h2>
+        <p>設定開始時間與專注長度，時間一到就自動進入讀書畫面。</p>
+      </div>
+      <div class="shortcut-note">
+        <span class="key">Ctrl</span><span>+</span><span class="key">Alt</span><span>+</span><span class="key">P</span>
+        <small>隨時打開程式</small>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <article class="panel form-panel">
+        <div class="section-heading">
+          <div>
+            <span class="step">01</span>
+            <h3 id="form-title">新增自律時鐘</h3>
+          </div>
+          <button id="reset-button" class="text-button" type="button">清除重填</button>
+        </div>
+
+        <form id="schedule-form">
+          <input id="schedule-id" type="hidden">
+          <label>
+            <span>這段時間要做什麼？</span>
+            <input id="title" type="text" maxlength="30" value="讀書" placeholder="例如：讀英文" required>
+          </label>
+
+          <div class="two-columns">
+            <label>
+              <span>開始時間</span>
+              <div class="time-picker" aria-label="選擇開始時間">
+                <select id="start-hour" aria-label="開始的小時" required></select>
+                <b>:</b>
+                <select id="start-minute" aria-label="開始的分鐘" required></select>
+              </div>
+            </label>
+            <label>
+              <span>持續幾分鐘</span>
+              <div class="input-with-unit">
+                <input id="duration" type="number" min="1" max="720" value="45" required>
+                <b>分鐘</b>
+              </div>
+            </label>
+          </div>
+
+          <div id="overwork-warning" class="warning" hidden>
+            你設定超過 60 分鐘。長時間專注容易疲勞，進行滿一小時時會提醒你休息。
+          </div>
+
+          <label>
+            <span>專注網址 <small>（可以不填）</small></span>
+            <input id="focus-url" type="text" placeholder="例如：www.youtube.com/watch?v=...">
+            <small class="help">有網址就固定顯示網頁；沒有網址就進入鎖定畫面。</small>
+          </label>
+
+          <div class="switch-row">
+            <div>
+              <strong>啟用這個時鐘</strong>
+              <small>關閉後會保留設定，但時間到不會啟動。</small>
+            </div>
+            <label class="switch" aria-label="啟用排程">
+              <input id="enabled" type="checkbox" checked>
+              <span></span>
+            </label>
+          </div>
+
+          <button class="primary-button" type="submit">儲存自律時鐘</button>
+          <p id="form-message" class="form-message" role="status"></p>
+        </form>
+      </article>
+
+      <article class="panel list-panel">
+        <div class="section-heading">
+          <div>
+            <span class="step">02</span>
+            <h3>我的每日排程</h3>
+          </div>
+          <span id="schedule-count" class="count">0 個</span>
+        </div>
+        <div id="schedule-list" class="schedule-list"></div>
+      </article>
+    </section>
+
+    <footer>
+      <span>關閉視窗後，程式仍會在右下角等待排程。</span>
+      <span>安全提醒：Ctrl + Alt + Delete 仍可使用。</span>
+    </footer>
+  </main>
+
+  <template id="empty-template">
+    <div class="empty-state">
+      <div class="empty-icon">◷</div>
+      <h4>還沒有排程</h4>
+      <p>從左邊新增第一個自律時鐘吧。</p>
+    </div>
+  </template>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: http:; style-src 'self'; script-src 'self'; img-src 'self' data: https: http:; frame-src https: http:">
+  <title>專注進行中</title>
+  <link rel="stylesheet" href="focus.css">
+</head>
+<body>
+  <div class="focus-shell">
+    <header>
+      <div class="focus-title">
+        <span class="pulse"></span>
+        <div>
+          <small id="mode-label">專注進行中</small>
+          <strong id="session-title">讀書</strong>
+        </div>
+      </div>
+      <div class="timer">
+        <small>剩餘時間</small>
+        <strong id="countdown">--:--</strong>
+      </div>
+      <button id="emergency-button" type="button">
+        <span id="exit-hint">長按 5 秒緊急解鎖</span>
+        <i id="hold-progress"></i>
+      </button>
+    </header>
+
+    <main id="focus-content">
+      <section id="lock-screen" class="lock-screen" hidden>
+        <div class="quote-mark">“</div>
+        <p>現在的專心，<br>會成為未來的底氣。</p>
+        <span>暫時放下其他事情，完成這一段時間。</span>
+        <div class="tomato">番</div>
+      </section>
+      <section id="web-area" class="web-area" hidden>
+        <webview id="focus-webview" partition="persist:focus-web"></webview>
+      </section>
+    </main>
+  </div>
+
+  <div id="rest-reminder" class="modal-backdrop" hidden>
+    <div class="rest-card">
+      <span>休息提醒</span>
+      <h2>你已經專注一小時了</h2>
+      <p>喝口水、看看遠方，活動一下肩頸，再繼續努力。</p>
+      <button id="continue-button" type="button">知道了，繼續專注</button>
+    </div>
+  </div>
+
+  <script src="focus.js"></script>
+</body>
+</html>
