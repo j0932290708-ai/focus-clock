@@ -1,0 +1,29 @@
+name: Windows test and build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: windows-latest
+    steps:
+      - name: 下載程式碼
+        uses: actions/checkout@v4
+      - name: 準備 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 安裝套件
+        run: npm ci
+      - name: 執行測試
+        run: npm test
+      - name: 產生 Windows 執行檔
+        run: npm run dist:win
+      - name: 保存 Windows 成品
+        uses: actions/upload-artifact@v4
+        with:
+          name: FocusClock-Windows
+          path: dist/FocusClock-1.0.0-Windows.exe
+          if-no-files-found: error
