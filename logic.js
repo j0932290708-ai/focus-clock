@@ -19,19 +19,20 @@ function isValidTime(value) {
 }
 
 function cleanSchedule(schedule) {
-  const rawDuration = Number(schedule.duration);
+  const source = schedule && typeof schedule === 'object' ? schedule : {};
+  const rawDuration = Number(source.duration);
   const duration = Number.isFinite(rawDuration)
     ? Math.max(1, Math.min(720, Math.trunc(rawDuration)))
     : 45;
 
   return {
-    id: String(schedule.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
-    title: String(schedule.title || '讀書').trim().slice(0, 30) || '讀書',
-    time: isValidTime(schedule.time) ? schedule.time : '08:30',
+    id: String(source.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    title: String(source.title || '讀書').trim().slice(0, 30) || '讀書',
+    time: isValidTime(source.time) ? source.time : '08:30',
     duration,
-    url: normalizeUrl(schedule.url),
-    enabled: schedule.enabled !== false,
-    lastRunDate: String(schedule.lastRunDate || '')
+    url: normalizeUrl(source.url),
+    enabled: source.enabled !== false,
+    lastRunDate: String(source.lastRunDate || '')
   };
 }
 
@@ -59,7 +60,9 @@ function schedulesOverlap(first, second) {
 }
 
 function findOverlappingPair(schedules) {
-  const enabled = schedules.filter((schedule) => schedule.enabled).map(cleanSchedule);
+  const enabled = (Array.isArray(schedules) ? schedules : [])
+    .filter((schedule) => schedule && typeof schedule === 'object' && schedule.enabled)
+    .map(cleanSchedule);
   for (let first = 0; first < enabled.length; first += 1) {
     for (let second = first + 1; second < enabled.length; second += 1) {
       if (schedulesOverlap(enabled[first], enabled[second])) return [enabled[first], enabled[second]];
@@ -77,6 +80,11 @@ const ALLOWED_SHORTCUTS = [
 
 function normalizeShortcut(shortcut) {
   return ALLOWED_SHORTCUTS.includes(shortcut) ? shortcut : ALLOWED_SHORTCUTS[0];
+}
+
+function shortcutCandidates(shortcut) {
+  const preferred = normalizeShortcut(shortcut);
+  return [preferred, ...ALLOWED_SHORTCUTS.filter((item) => item !== preferred)];
 }
 
 function isSameOriginUrl(originalUrl, nextUrl) {
@@ -122,6 +130,7 @@ module.exports = {
   findOverlappingPair,
   ALLOWED_SHORTCUTS,
   normalizeShortcut,
+  shortcutCandidates,
   isSameOriginUrl,
   lastRunDateAfterEdit,
   localDateKey,

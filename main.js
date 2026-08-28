@@ -6,10 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {
   cleanSchedule, findOverlappingPair, isSameOriginUrl,
-  lastRunDateAfterEdit, localDateKey, normalizeShortcut, shouldStart
+  lastRunDateAfterEdit, localDateKey, normalizeShortcut, shortcutCandidates, shouldStart
 } = require('./logic');
 
-const DEFAULT_SHORTCUT = 'CommandOrControl+Alt+P';
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 let mainWindow;
@@ -21,7 +20,8 @@ let powerBlockerId = null;
 let scheduleTimer = null;
 let focusEndTimer = null;
 let allowFocusClose = false;
-let activeShortcut = DEFAULT_SHORTCUT;
+let activeShortcut = null;
+let startupShortcutNotice = '';
 let pendingEndNotice = null;
 let focusWebSessionConfigured = false;
 
@@ -70,6 +70,19 @@ function readSettings() {
   return { shortcut: normalizeShortcut(saved.shortcut) };
 }
 
+function shortcutLabel(shortcut) {
+  return shortcut.replace('CommandOrControl', 'Ctrl').replaceAll('+', ' + ');
+}
+
+function currentShortcutSettings(message = '') {
+  const shortcutEnabled = Boolean(activeShortcut && globalShortcut.isRegistered(activeShortcut));
+  return {
+    shortcut: shortcutEnabled ? activeShortcut : readSettings().shortcut,
+    shortcutEnabled,
+    message
+  };
+}
+
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.show();
@@ -79,27 +92,55 @@ function showMainWindow() {
 
 function registerOpeningShortcut(requestedShortcut, save = false) {
   const nextShortcut = normalizeShortcut(requestedShortcut);
-  if (nextShortcut === activeShortcut && globalShortcut.isRegistered(activeShortcut)) {
-    return { ok: true, shortcut: activeShortcut };
+  if (nextShortcut === activeShortcut && globalShortcut.isRegistered(nextShortcut)) {
+    return { ok: true, ...currentShortcutSettings() };
   }
 
-  const previousShortcut = activeShortcut;
-  globalShortcut.unregister(previousShortcut);
+  const previousShortcut = activeShortcut && globalShortcut.isRegistered(activeShortcut)
+    ? activeShortcut
+    : null;
+  if (previousShortcut) globalShortcut.unregister(previousShortcut);
   const registered = globalShortcut.register(nextShortcut, showMainWindow);
 
   if (!registered) {
-    globalShortcut.register(previousShortcut, showMainWindow);
-    return {
+    const restored = previousShortcut
+      ? globalShortcut.register(previousShortcut, showMainWindow)
+      : false;
+    activeShortcut = restored ? previousShortcut : null;
+    const result = {
       ok: false,
-      shortcut: previousShortcut,
-      message: '這組快捷鍵已被其他程式使用，原本的快捷鍵會繼續生效。'
+      ...currentShortcutSettings(),
+      message: restored
+        ? '這組快捷鍵已被其他程式使用，原本的快捷鍵會繼續生效。'
+        : '這組快捷鍵已被其他程式使用，目前沒有啟用快捷鍵，請改選其他組合。'
     };
+    mainWindow?.webContents.send('settings-changed', result);
+    return result;
   }
 
   activeShortcut = nextShortcut;
   if (save) writeJson('settings.json', { shortcut: activeShortcut });
-  mainWindow?.webContents.send('settings-changed', { shortcut: activeShortcut });
-  return { ok: true, shortcut: activeShortcut };
+  const result = { ok: true, ...currentShortcutSettings() };
+  mainWindow?.webContents.send('settings-changed', result);
+  return result;
+}
+
+function registerStartupShortcut(savedShortcut) {
+  const preferred = normalizeShortcut(savedShortcut);
+  const candidates = shortcutCandidates(preferred);
+
+  for (const candidate of candidates) {
+    if (!globalShortcut.register(candidate, showMainWindow)) continue;
+    activeShortcut = candidate;
+    if (candidate !== preferred) {
+      writeJson('settings.json', { shortcut: candidate });
+      startupShortcutNotice = `原本的快捷鍵 ${shortcutLabel(preferred)} 已被占用，已自動改用 ${shortcutLabel(candidate)}。`;
+    }
+    return;
+  }
+
+  activeShortcut = null;
+  startupShortcutNotice = '四組快捷鍵目前都被其他程式占用，因此快捷鍵未啟用；請關閉衝突程式後重新選擇。';
 }
 
 function createMainWindow() {
@@ -120,6 +161,11 @@ function createMainWindow() {
   });
 
   mainWindow.loadFile('index.html');
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (!startupShortcutNotice) return;
+    mainWindow.webContents.send('app-message', startupShortcutNotice);
+    startupShortcutNotice = '';
+  });
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
@@ -190,12 +236,16 @@ function secureWebview(window) {
       return { action: 'deny' };
     });
 
-    guestContents.on('will-navigate', (event, nextUrl) => {
+    const blockCrossOriginNavigation = (event, legacyUrl) => {
+      const nextUrl = event?.url || legacyUrl || '';
       if (currentFocus?.url && !isSameOriginUrl(currentFocus.url, nextUrl)) {
         event.preventDefault();
         sendFocusNotice('已阻止跳到其他網站，專注頁面會留在原本網域。', 'warning');
       }
-    });
+    };
+
+    guestContents.on('will-navigate', blockCrossOriginNavigation);
+    guestContents.on('will-redirect', blockCrossOriginNavigation);
 
     guestContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
       if (isMainFrame && errorCode !== -3) {
@@ -356,7 +406,7 @@ function registerMessages() {
   ipcMain.handle('focus:start', (_event, schedule) => startFocus(schedule, { preview: true }));
   ipcMain.handle('focus:get-current', () => currentFocus);
   ipcMain.handle('focus:emergency-unlock', () => endFocus('emergency'));
-  ipcMain.handle('settings:get', () => ({ shortcut: activeShortcut }));
+  ipcMain.handle('settings:get', () => currentShortcutSettings());
   ipcMain.handle('settings:set-shortcut', (_event, shortcut) => registerOpeningShortcut(shortcut, true));
 }
 
@@ -367,15 +417,10 @@ if (!hasSingleInstanceLock) {
 
   app.whenReady().then(() => {
     registerMessages();
+    const savedShortcut = readSettings().shortcut;
+    registerStartupShortcut(savedShortcut);
     createMainWindow();
     createTray();
-
-    const savedShortcut = readSettings().shortcut;
-    const shortcutResult = registerOpeningShortcut(savedShortcut, false);
-    if (!shortcutResult.ok && savedShortcut !== DEFAULT_SHORTCUT) {
-      activeShortcut = DEFAULT_SHORTCUT;
-      globalShortcut.register(DEFAULT_SHORTCUT, showMainWindow);
-    }
 
     scheduleTimer = setInterval(checkSchedules, 1000);
     checkSchedules();

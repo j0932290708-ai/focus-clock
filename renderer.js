@@ -61,8 +61,15 @@ function shortcutLabel(value) {
 
 async function loadSettings() {
   const settings = await window.focusClock.getSettings();
+  renderShortcutSettings(settings);
+}
+
+function renderShortcutSettings(settings) {
   document.querySelector('#shortcut-select').value = settings.shortcut;
-  document.querySelector('#active-shortcut').textContent = shortcutLabel(settings.shortcut);
+  document.querySelector('#active-shortcut').textContent = settings.shortcutEnabled
+    ? shortcutLabel(settings.shortcut)
+    : '未啟用';
+  if (settings.message) showMessage(settings.message);
 }
 
 function escapeText(text) {
@@ -151,7 +158,9 @@ form.addEventListener('submit', async (event) => {
   schedules = result.schedules;
   renderSchedules();
   resetForm();
-  showMessage('已儲存，每天會在設定時間啟動。');
+  showMessage(url.startsWith('http://')
+    ? '已儲存；提醒：HTTP 網址未加密，建議改用 HTTPS。'
+    : '已儲存，每天會在設定時間啟動。');
 });
 
 list.addEventListener('click', async (event) => {
@@ -182,8 +191,12 @@ list.addEventListener('click', async (event) => {
   if (button.dataset.action === 'delete') {
     if (!confirm(`確定要刪除「${schedule.title}」嗎？`)) return;
     const wasEditing = document.querySelector('#schedule-id').value === schedule.id;
-    schedules = schedules.filter((item) => item.id !== schedule.id);
-    const result = await window.focusClock.saveSchedules(schedules);
+    const nextSchedules = schedules.filter((item) => item.id !== schedule.id);
+    const result = await window.focusClock.saveSchedules(nextSchedules);
+    if (!result.ok) {
+      showMessage(result.message || '刪除失敗，原本的排程仍然保留。');
+      return;
+    }
     schedules = result.schedules;
     renderSchedules();
     if (wasEditing) resetForm();
@@ -213,8 +226,7 @@ durationInput.addEventListener('input', () => {
 document.querySelector('#reset-button').addEventListener('click', resetForm);
 document.querySelector('#save-shortcut').addEventListener('click', async () => {
   const result = await window.focusClock.setShortcut(document.querySelector('#shortcut-select').value);
-  document.querySelector('#shortcut-select').value = result.shortcut;
-  document.querySelector('#active-shortcut').textContent = shortcutLabel(result.shortcut);
+  renderShortcutSettings(result);
   showMessage(result.ok ? '快捷鍵已更新。' : result.message);
 });
 
@@ -229,8 +241,7 @@ window.focusClock.onFocusStatusChanged((detail) => {
   showMessage(detail?.shouldRest ? '專注完成！請喝水、活動身體並讓眼睛休息。' : '專注時間已結束。');
 });
 window.focusClock.onSettingsChanged((settings) => {
-  document.querySelector('#shortcut-select').value = settings.shortcut;
-  document.querySelector('#active-shortcut').textContent = shortcutLabel(settings.shortcut);
+  renderShortcutSettings(settings);
 });
 window.focusClock.onAppMessage(showMessage);
 setInterval(updateClock, 1000);
