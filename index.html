@@ -30,9 +30,23 @@
         <p>設定開始時間與專注長度，時間一到就自動進入讀書畫面。</p>
       </div>
       <div class="shortcut-note">
-        <span class="key">Ctrl</span><span>+</span><span class="key">Alt</span><span>+</span><span class="key">P</span>
+        <strong id="active-shortcut">Ctrl + Alt + P</strong>
         <small>隨時打開程式</small>
       </div>
+    </section>
+
+    <section class="shortcut-settings" aria-labelledby="shortcut-title">
+      <div>
+        <span class="step">快捷鍵</span>
+        <strong id="shortcut-title">選擇打開程式的按鍵組合</strong>
+      </div>
+      <select id="shortcut-select" aria-label="程式快捷鍵">
+        <option value="CommandOrControl+Alt+P">Ctrl + Alt + P</option>
+        <option value="CommandOrControl+Alt+F">Ctrl + Alt + F</option>
+        <option value="CommandOrControl+Shift+P">Ctrl + Shift + P</option>
+        <option value="Alt+Shift+P">Alt + Shift + P</option>
+      </select>
+      <button id="save-shortcut" class="secondary-button" type="button">套用快捷鍵</button>
     </section>
 
     <section class="workspace">
@@ -109,7 +123,7 @@
     </section>
 
     <footer>
-      <span>關閉視窗後，程式仍會在右下角等待排程。</span>
+      <span>關閉視窗後，程式仍會在 Windows 通知區等待排程。</span>
       <span>安全提醒：Ctrl + Alt + Delete 仍可使用。</span>
     </footer>
   </main>

@@ -35,17 +35,39 @@
         <div class="tomato">番</div>
       </section>
       <section id="web-area" class="web-area" hidden>
-        <webview id="focus-webview" partition="persist:focus-web"></webview>
+        <webview id="focus-webview" partition="focus-web"></webview>
+      </section>
+      <section id="load-error" class="load-error" hidden>
+        <div class="tomato">!</div>
+        <h2>專注網頁無法載入</h2>
+        <p id="load-error-message">請檢查網路或網址。倒數仍會繼續，時間到會自動解除。</p>
       </section>
     </main>
   </div>
 
-  <div id="rest-reminder" class="modal-backdrop" hidden>
+  <aside id="focus-notice" class="focus-notice" hidden>
+    <span id="focus-notice-message"></span>
+    <button id="close-notice" type="button" aria-label="關閉提示">×</button>
+  </aside>
+
+  <aside id="rest-reminder" class="rest-toast" hidden>
     <div class="rest-card">
       <span>休息提醒</span>
-      <h2>你已經專注一小時了</h2>
+      <strong>你已經專注一小時了</strong>
       <p>喝口水、看看遠方，活動一下肩頸，再繼續努力。</p>
-      <button id="continue-button" type="button">知道了，繼續專注</button>
+      <button id="continue-button" type="button">關閉提醒</button>
+    </div>
+  </aside>
+
+  <div id="unlock-confirm" class="modal-backdrop" hidden>
+    <div class="unlock-card">
+      <span>緊急解鎖</span>
+      <h2>確定要提前結束嗎？</h2>
+      <p>正式專注還沒結束。只有遇到緊急狀況時才建議退出。</p>
+      <div>
+        <button id="cancel-unlock" type="button">繼續專注</button>
+        <button id="confirm-unlock" class="danger-button" type="button">確定解鎖</button>
+      </div>
     </div>
   </div>
 

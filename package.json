@@ -5,9 +5,34 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test tests/logic.test.js"
+    "test": "node --test tests/logic.test.js",
+    "dist:win": "electron-builder --win portable"
   },
   "devDependencies": {
-    "electron": "^44.0.0"
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "tw.student.focusclock",
+    "productName": "Focus Clock",
+    "artifactName": "FocusClock-${version}-Windows.${ext}",
+    "files": [
+      "main.js",
+      "logic.js",
+      "preload.js",
+      "focus-preload.js",
+      "index.html",
+      "styles.css",
+      "renderer.js",
+      "focus.html",
+      "focus.css",
+      "focus.js",
+      "icon.png",
+      "icon-256.png"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "icon-256.png"
+    }
   }
 }

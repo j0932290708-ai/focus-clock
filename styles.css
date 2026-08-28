@@ -33,9 +33,13 @@ button { cursor: pointer; }
 .hero h2 { margin: 0; font-family: Georgia, "Microsoft JhengHei UI", serif; font-size: clamp(36px, 5vw, 56px); line-height: 1.06; letter-spacing: -.04em; }
 .hero h2 em { color: #f08a78; font-style: normal; }
 .hero p { max-width: 510px; margin: 16px 0 0; color: #cbd2ce; font-size: 14px; }
-.shortcut-note { z-index: 1; display: grid; grid-template-columns: auto auto auto auto auto; gap: 5px; align-items: center; padding: 15px 17px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 16px; font-size: 11px; }
-.shortcut-note .key { padding: 6px 8px; background: rgba(255,255,255,.12); border-radius: 6px; }
+.shortcut-note { z-index: 1; display: grid; gap: 5px; align-items: center; padding: 15px 17px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 16px; font-size: 11px; }
+.shortcut-note strong { padding: 6px 8px; background: rgba(255,255,255,.12); border-radius: 6px; }
 .shortcut-note small { grid-column: 1 / -1; margin-top: 6px; color: #cbd2ce; text-align: center; }
+.shortcut-settings { display: grid; grid-template-columns: 1fr 210px 130px; gap: 12px; align-items: center; margin: 0 0 22px; padding: 15px 18px; border: 1px solid var(--line); border-radius: 15px; background: #eeebe3; }
+.shortcut-settings > div { display: grid; gap: 2px; }
+.shortcut-settings strong { font-size: 12px; }
+.secondary-button { height: 42px; border: 1px solid var(--green); border-radius: 10px; background: transparent; color: var(--green); font-weight: 800; }
 
 .workspace { display: grid; grid-template-columns: minmax(390px, .88fr) minmax(380px, 1.12fr); gap: 22px; }
 .panel { background: rgba(255,255,255,.52); border: 1px solid var(--line); border-radius: 22px; padding: 26px; }

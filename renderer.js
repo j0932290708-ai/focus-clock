@@ -55,6 +55,16 @@ async function loadSchedules() {
   renderSchedules();
 }
 
+function shortcutLabel(value) {
+  return value.replace('CommandOrControl', 'Ctrl').replaceAll('+', ' + ');
+}
+
+async function loadSettings() {
+  const settings = await window.focusClock.getSettings();
+  document.querySelector('#shortcut-select').value = settings.shortcut;
+  document.querySelector('#active-shortcut').textContent = shortcutLabel(settings.shortcut);
+}
+
 function escapeText(text) {
   const node = document.createElement('span');
   node.textContent = text;
@@ -122,14 +132,23 @@ form.addEventListener('submit', async (event) => {
     duration: Number(durationInput.value),
     url,
     enabled: document.querySelector('#enabled').checked,
-    lastRunDate: schedules.find((item) => item.id === id)?.lastRunDate || ''
+    lastRunDate: (() => {
+      const previous = schedules.find((item) => item.id === id);
+      return previous && previous.time === selectedTime() ? previous.lastRunDate : '';
+    })()
   };
 
   const index = schedules.findIndex((item) => item.id === id);
-  if (index >= 0) schedules[index] = schedule;
-  else schedules.push(schedule);
+  const nextSchedules = [...schedules];
+  if (index >= 0) nextSchedules[index] = schedule;
+  else nextSchedules.push(schedule);
 
-  schedules = await window.focusClock.saveSchedules(schedules);
+  const result = await window.focusClock.saveSchedules(nextSchedules);
+  if (!result.ok) {
+    showMessage(result.message);
+    return;
+  }
+  schedules = result.schedules;
   renderSchedules();
   resetForm();
   showMessage('已儲存，每天會在設定時間啟動。');
@@ -164,7 +183,8 @@ list.addEventListener('click', async (event) => {
     if (!confirm(`確定要刪除「${schedule.title}」嗎？`)) return;
     const wasEditing = document.querySelector('#schedule-id').value === schedule.id;
     schedules = schedules.filter((item) => item.id !== schedule.id);
-    schedules = await window.focusClock.saveSchedules(schedules);
+    const result = await window.focusClock.saveSchedules(schedules);
+    schedules = result.schedules;
     renderSchedules();
     if (wasEditing) resetForm();
     showMessage('排程已刪除，可以繼續新增或修改時間。');
@@ -175,8 +195,14 @@ list.addEventListener('change', async (event) => {
   if (!event.target.classList.contains('card-toggle')) return;
   const card = event.target.closest('.schedule-card');
   const schedule = schedules.find((item) => item.id === card.dataset.id);
+  const previousEnabled = schedule.enabled;
   schedule.enabled = event.target.checked;
-  schedules = await window.focusClock.saveSchedules(schedules);
+  const result = await window.focusClock.saveSchedules(schedules);
+  if (!result.ok) {
+    schedule.enabled = previousEnabled;
+    showMessage(result.message);
+  }
+  schedules = result.schedules;
   renderSchedules();
 });
 
@@ -185,6 +211,12 @@ durationInput.addEventListener('input', () => {
 });
 
 document.querySelector('#reset-button').addEventListener('click', resetForm);
+document.querySelector('#save-shortcut').addEventListener('click', async () => {
+  const result = await window.focusClock.setShortcut(document.querySelector('#shortcut-select').value);
+  document.querySelector('#shortcut-select').value = result.shortcut;
+  document.querySelector('#active-shortcut').textContent = shortcutLabel(result.shortcut);
+  showMessage(result.ok ? '快捷鍵已更新。' : result.message);
+});
 
 function updateClock() {
   document.querySelector('#live-clock').textContent = new Date().toLocaleTimeString('zh-TW', {
@@ -193,9 +225,17 @@ function updateClock() {
 }
 
 window.focusClock.onSchedulesChanged(loadSchedules);
-window.focusClock.onFocusStatusChanged(() => showMessage('專注時間已結束。'));
+window.focusClock.onFocusStatusChanged((detail) => {
+  showMessage(detail?.shouldRest ? '專注完成！請喝水、活動身體並讓眼睛休息。' : '專注時間已結束。');
+});
+window.focusClock.onSettingsChanged((settings) => {
+  document.querySelector('#shortcut-select').value = settings.shortcut;
+  document.querySelector('#active-shortcut').textContent = shortcutLabel(settings.shortcut);
+});
+window.focusClock.onAppMessage(showMessage);
 setInterval(updateClock, 1000);
 fillTimeChoices();
 setSelectedTime('08:30');
 updateClock();
 loadSchedules();
+loadSettings();

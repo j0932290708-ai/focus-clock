@@ -13,7 +13,7 @@ function formatRemaining(milliseconds) {
   return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
 }
 
-async function tick() {
+function tick() {
   const remaining = session.endsAt - Date.now();
   document.querySelector('#countdown').textContent = formatRemaining(remaining);
 
@@ -22,10 +22,7 @@ async function tick() {
     document.querySelector('#rest-reminder').hidden = false;
   }
 
-  if (remaining <= 0) {
-    clearInterval(timerId);
-    await window.focusSession.complete();
-  }
+  if (remaining <= 0) clearInterval(timerId);
 }
 
 function startEmergencyHold() {
@@ -36,7 +33,9 @@ function startEmergencyHold() {
     document.querySelector('#hold-progress').style.width = `${progress}%`;
     if (progress >= 100) {
       clearInterval(holdTimer);
-      await window.focusSession.emergencyUnlock();
+      document.querySelector('#hold-progress').style.width = '0';
+      if (session.preview) await window.focusSession.emergencyUnlock();
+      else document.querySelector('#unlock-confirm').hidden = false;
     }
   }, 40);
 }
@@ -55,7 +54,7 @@ async function initialize() {
     document.querySelector('#mode-label').textContent = '安全測試模式';
     document.querySelector('#exit-hint').textContent = 'Shift + S、右鍵或長按退出';
   } else {
-    document.querySelector('#exit-hint').textContent = 'Shift + S、右鍵或長按退出';
+    document.querySelector('#exit-hint').textContent = '長按 5 秒申請緊急解鎖';
   }
   if (session.url) {
     document.querySelector('#web-area').hidden = false;
@@ -80,6 +79,29 @@ emergencyButton.addEventListener('touchend', cancelEmergencyHold);
 
 document.querySelector('#continue-button').addEventListener('click', () => {
   document.querySelector('#rest-reminder').hidden = true;
+});
+
+document.querySelector('#close-notice').addEventListener('click', () => {
+  document.querySelector('#focus-notice').hidden = true;
+});
+
+document.querySelector('#cancel-unlock').addEventListener('click', () => {
+  document.querySelector('#unlock-confirm').hidden = true;
+});
+
+document.querySelector('#confirm-unlock').addEventListener('click', async () => {
+  await window.focusSession.emergencyUnlock();
+});
+
+window.focusSession.onNotice((detail) => {
+  document.querySelector('#focus-notice-message').textContent = detail.message;
+  document.querySelector('#focus-notice').hidden = false;
+});
+
+window.focusSession.onLoadFailed((detail) => {
+  document.querySelector('#web-area').hidden = true;
+  document.querySelector('#load-error').hidden = false;
+  document.querySelector('#load-error-message').textContent = `${detail.message} 倒數仍會繼續，時間到會自動解除。`;
 });
 
 initialize();
