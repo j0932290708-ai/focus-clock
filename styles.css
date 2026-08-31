@@ -13,8 +13,8 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 760px; background: var(--paper); }
-button, input { font: inherit; }
+body { margin: 0; min-width: 0; background: var(--paper); }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 
 .app-shell { max-width: 1180px; margin: 0 auto; padding: 28px 38px 24px; }
@@ -40,6 +40,9 @@ button { cursor: pointer; }
 .shortcut-settings > div { display: grid; gap: 2px; }
 .shortcut-settings strong { font-size: 12px; }
 .secondary-button { height: 42px; border: 1px solid var(--green); border-radius: 10px; background: transparent; color: var(--green); font-weight: 800; }
+.web-app-note { display: flex; gap: 12px; align-items: center; margin: 0 0 22px; padding: 14px 18px; border: 1px solid #aacbb9; border-radius: 15px; background: #e6f2eb; color: var(--green); }
+.web-app-note strong { flex: 0 0 auto; font-size: 12px; }
+.web-app-note span { font-size: 11px; line-height: 1.6; }
 
 .workspace { display: grid; grid-template-columns: minmax(390px, .88fr) minmax(380px, 1.12fr); gap: 22px; }
 .panel { background: rgba(255,255,255,.52); border: 1px solid var(--line); border-radius: 22px; padding: 26px; }
@@ -102,4 +105,25 @@ footer { display: flex; justify-content: space-between; padding: 17px 4px 0; col
   .workspace { grid-template-columns: 1fr; }
   .hero { align-items: flex-start; }
   .shortcut-note { display: none; }
+}
+
+@media (max-width: 640px) {
+  .app-shell { padding: 18px 14px 24px; }
+  .brand-mark { width: 40px; height: 40px; font-size: 18px; }
+  .brand h1 { font-size: 17px; }
+  .clock-card { min-width: 92px; padding: 7px 0 7px 12px; }
+  .clock-card strong { font-size: 21px; }
+  .hero { margin: 22px 0 16px; padding: 26px 22px; border-radius: 20px; }
+  .hero h2 { font-size: 36px; }
+  .hero p { font-size: 12px; line-height: 1.7; }
+  .desktop-only { display: none !important; }
+  .web-app-note { align-items: flex-start; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+  .panel { padding: 20px 16px; border-radius: 18px; }
+  .two-columns { grid-template-columns: 1fr; gap: 0; }
+  input[type="text"], input[type="number"], select { min-height: 50px; font-size: 16px; }
+  .schedule-card { grid-template-columns: 64px 1fr; gap: 12px; padding: 15px; }
+  .schedule-actions { grid-column: 1 / -1; }
+  .schedule-actions .icon-button { flex: 1; min-height: 40px; }
+  .schedule-info p { max-width: 210px; }
+  footer { flex-direction: column; gap: 6px; line-height: 1.5; }
 }

@@ -36,6 +36,7 @@
       </section>
       <section id="web-area" class="web-area" hidden>
         <webview id="focus-webview" partition="focus-web" preload="./focus-web-preload.js"></webview>
+        <iframe id="focus-frame" title="專注網站" hidden></iframe>
       </section>
       <section id="load-error" class="load-error" hidden>
         <div class="tomato">!</div>
@@ -44,6 +45,8 @@
       </section>
     </main>
   </div>
+
+  <button id="direct-exit-button" class="direct-exit-button" type="button" hidden>直接結束</button>
 
   <aside id="focus-notice" class="focus-notice" hidden>
     <span id="focus-notice-message"></span>

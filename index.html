@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <meta name="theme-color" content="#17211c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>專注番茄鐘</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="pwa-icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,13 +33,13 @@
         <h2>把時間留給<br><em>真正重要的事。</em></h2>
         <p>設定開始時間與專注長度，時間一到就自動進入讀書畫面。</p>
       </div>
-      <div class="shortcut-note">
+      <div class="shortcut-note desktop-only">
         <strong id="active-shortcut">Ctrl + Alt + P</strong>
         <small>隨時打開程式</small>
       </div>
     </section>
 
-    <section class="shortcut-settings" aria-labelledby="shortcut-title">
+    <section class="shortcut-settings desktop-only" aria-labelledby="shortcut-title">
       <div>
         <span class="step">快捷鍵</span>
         <strong id="shortcut-title">選擇打開程式的按鍵組合</strong>
@@ -47,6 +51,11 @@
         <option value="Alt+Shift+P">Alt + Shift + P</option>
       </select>
       <button id="save-shortcut" class="secondary-button" type="button">套用快捷鍵</button>
+    </section>
+
+    <section id="web-app-note" class="web-app-note" hidden>
+      <strong>手機／平板專注模式</strong>
+      <span>可加入主畫面使用。排程啟動需要保持網頁開啟；手機系統仍可切換到其他 App。</span>
     </section>
 
     <section class="workspace">
@@ -123,8 +132,8 @@
     </section>
 
     <footer>
-      <span>關閉視窗後，程式仍會在 Windows 通知區等待排程。</span>
-      <span>安全提醒：Ctrl + Alt + Delete 仍可使用。</span>
+      <span id="platform-note">關閉視窗後，程式仍會在 Windows 通知區等待排程。</span>
+      <span id="platform-safety">安全提醒：Ctrl + Alt + Delete 仍可使用。</span>
     </footer>
   </main>
 
@@ -136,6 +145,8 @@
     </div>
   </template>
 
+  <script src="logic.js"></script>
+  <script src="web-adapter.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

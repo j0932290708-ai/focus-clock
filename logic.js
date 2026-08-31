@@ -121,7 +121,7 @@ function shouldStart(schedule, now) {
   );
 }
 
-module.exports = {
+const focusClockLogic = {
   normalizeUrl,
   isValidTime,
   cleanSchedule,
@@ -137,3 +137,6 @@ module.exports = {
   localTimeKey,
   shouldStart
 };
+
+if (typeof module !== 'undefined' && module.exports) module.exports = focusClockLogic;
+if (typeof window !== 'undefined') window.focusClockLogic = focusClockLogic;
