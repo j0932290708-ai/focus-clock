@@ -199,6 +199,14 @@ function sendFocusNotice(message, type = 'info') {
   }
 }
 
+app.on('web-contents-created', (_event, contents) => {
+  if (contents.getType() !== 'webview') return;
+  contents.setWindowOpenHandler(() => {
+    sendFocusNotice('已阻止網站開啟新視窗。', 'warning');
+    return { action: 'deny' };
+  });
+});
+
 function configureFocusSession() {
   if (focusWebSessionConfigured) return;
   const focusSession = session.fromPartition('focus-web');
@@ -219,6 +227,7 @@ function isPreviewExit(input) {
 function secureWebview(window) {
   window.webContents.on('will-attach-webview', (event, webPreferences, params) => {
     delete webPreferences.preload;
+    webPreferences.preload = path.join(__dirname, 'focus-web-preload.js');
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = true;
     webPreferences.devTools = false;
@@ -231,9 +240,10 @@ function secureWebview(window) {
   });
 
   window.webContents.on('did-attach-webview', (_event, guestContents) => {
-    guestContents.setWindowOpenHandler(() => {
-      sendFocusNotice('已阻止網站開啟新視窗。', 'warning');
-      return { action: 'deny' };
+    guestContents.on('ipc-message', (_ipcEvent, channel) => {
+      if (channel === 'focus:web-popup-blocked') {
+        sendFocusNotice('已阻止網站開啟新視窗。', 'warning');
+      }
     });
 
     const blockCrossOriginNavigation = (event, legacyUrl) => {

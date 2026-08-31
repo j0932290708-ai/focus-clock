@@ -21,6 +21,7 @@
       "logic.js",
       "preload.js",
       "focus-preload.js",
+      "focus-web-preload.js",
       "index.html",
       "styles.css",
       "renderer.js",
