@@ -1,0 +1,9 @@
+{
+  "appId": "tw.student.focusclock",
+  "appName": "專注番茄鐘",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f7f3eb"
+  }
+}

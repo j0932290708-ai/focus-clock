@@ -5,7 +5,48 @@
   const schedulesKey = 'focus-clock-schedules';
   const changedListeners = [];
   const statusListeners = [];
-  document.documentElement.dataset.platform = 'web';
+  let installPrompt = null;
+  const isNativeAndroid = window.Capacitor?.isNativePlatform?.() === true;
+  document.documentElement.dataset.platform = isNativeAndroid ? 'android' : 'web';
+
+  const isStandalone = () => isNativeAndroid
+    || window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  function showInstallHelp(message) {
+    const help = document.querySelector('#install-help');
+    if (!help) return;
+    help.textContent = message;
+    help.hidden = false;
+  }
+
+  async function installApp() {
+    const button = document.querySelector('#install-app-button');
+    if (isStandalone()) {
+      button.textContent = '已安裝';
+      button.disabled = true;
+      showInstallHelp('番茄鐘已經安裝完成，可以從主畫面或桌面圖示開啟。');
+      return;
+    }
+
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      installPrompt = null;
+      button.dataset.installReady = 'false';
+      if (choice.outcome === 'accepted') {
+        button.textContent = '安裝完成';
+        button.disabled = true;
+        showInstallHelp('安裝完成，現在可以從主畫面或桌面圖示開啟番茄鐘。');
+      }
+      return;
+    }
+
+    const isiPhoneOrIPad = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    showInstallHelp(isiPhoneOrIPad
+      ? 'iPhone／iPad：請用 Safari 開啟，按下方「分享」按鈕，再選「加入主畫面」與「新增」。'
+      : '若沒有跳出安裝視窗，請開啟瀏覽器選單，選擇「安裝應用程式」或「加入主畫面」。');
+  }
 
   function readSchedules() {
     try {
@@ -79,10 +120,39 @@
   }
 
   window.addEventListener('storage', () => changedListeners.forEach((callback) => callback()));
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    const button = document.querySelector('#install-app-button');
+    if (button) {
+      button.textContent = '安裝 App';
+      button.dataset.installReady = 'true';
+    }
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    const button = document.querySelector('#install-app-button');
+    if (!button) return;
+    button.dataset.installReady = 'false';
+    button.textContent = '安裝完成';
+    button.disabled = true;
+    showInstallHelp('安裝完成，現在可以從主畫面或桌面圖示開啟番茄鐘。');
+  });
   window.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('#web-app-note').hidden = false;
-    document.querySelector('#platform-note').textContent = '手機版需保持網頁開啟，時間到才會自動進入專注畫面。';
-    document.querySelector('#platform-safety').textContent = '手機版不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
+    const installButton = document.querySelector('#install-app-button');
+    if (isNativeAndroid) {
+      document.querySelector('#platform-note').textContent = 'Android App 需保持開啟，時間到才會自動進入專注畫面。';
+      document.querySelector('#platform-safety').textContent = 'Android App 不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
+    } else {
+      document.querySelector('#web-app-note').hidden = false;
+      installButton.addEventListener('click', installApp);
+      if (isStandalone()) {
+        installButton.textContent = '已安裝';
+        installButton.disabled = true;
+      }
+      document.querySelector('#platform-note').textContent = '手機版需保持網頁開啟，時間到才會自動進入專注畫面。';
+      document.querySelector('#platform-safety').textContent = '手機版不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
+    }
     const result = new URLSearchParams(location.search).get('focus');
     if (result) {
       setTimeout(() => statusListeners.forEach((callback) => callback({ reason: result })), 0);
@@ -90,7 +160,7 @@
     }
   });
 
-  if ('serviceWorker' in navigator && (
+  if (!isNativeAndroid && 'serviceWorker' in navigator && (
     location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)
   )) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});

@@ -6,9 +6,14 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test tests/logic.test.js",
-    "dist:win": "electron-builder --win portable"
+    "dist:win": "electron-builder --win portable",
+    "build:web": "node scripts/build-web.js",
+    "android:add": "npm run build:web && node scripts/run-capacitor.js add android",
+    "android:sync": "npm run build:web && node scripts/run-capacitor.js sync android && node scripts/sync-android-icon.js",
+    "android:apk": "npm run android:sync && node scripts/build-android.js"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "electron": "^44.0.0",
     "electron-builder": "^26.15.3"
   },
@@ -40,5 +45,9 @@
       "target": "portable",
       "icon": "icon-256.png"
     }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
   }
 }

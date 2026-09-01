@@ -3,5 +3,6 @@ node_modules/
 .electron-cache/
 .localappdata/
 dist/
+www/
 *.log
 番茄鐘/

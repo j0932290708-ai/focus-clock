@@ -1,4 +1,4 @@
-const cacheName = 'focus-clock-v1';
+const cacheName = 'focus-clock-v2';
 const appFiles = [
   './', './index.html', './styles.css', './logic.js', './web-adapter.js', './renderer.js',
   './focus.html', './focus.css', './focus.js', './manifest.json',
