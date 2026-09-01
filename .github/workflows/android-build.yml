@@ -1,0 +1,48 @@
+name: Android APK build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-and-build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下載程式碼
+        uses: actions/checkout@v4
+      - name: 準備 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 準備 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: 準備 Android SDK
+        uses: android-actions/setup-android@v3
+      - name: 安裝 Android 36 平台
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: 安裝套件
+        run: npm ci
+      - name: 執行測試
+        run: npm test
+      - name: 同步 Android 專案
+        run: npm run android:sync
+      - name: 產生 APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: 整理 APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/FocusClock-1.0.0-Android.apk
+      - name: 保存 Android 成品
+        uses: actions/upload-artifact@v4
+        with:
+          name: FocusClock-Android-APK
+          path: dist/FocusClock-1.0.0-Android.apk
+          if-no-files-found: error
