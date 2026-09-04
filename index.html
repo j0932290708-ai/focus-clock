@@ -62,6 +62,13 @@
       <button id="install-app-button" class="install-app-button" type="button">安裝 App</button>
     </section>
 
+    <section class="platform-status" aria-label="執行能力">
+      <strong id="running-state" role="status">程式執行中；錯過後依排程設定最多補跑 5 分鐘。</strong>
+      <p id="platform-note">Windows 需保持程式執行；關機或休眠時不保證準時啟動。</p>
+      <p id="platform-safety">自律用全螢幕工具，不是系統安全鎖；不會暫停其他程式。</p>
+      <p id="data-warning" class="warning" role="alert" hidden></p>
+    </section>
+
     <section class="workspace">
       <article class="panel form-panel">
         <div class="section-heading">
@@ -103,9 +110,10 @@
 
           <label>
             <span>專注網址 <small>（可以不填）</small></span>
-            <input id="focus-url" type="text" placeholder="例如：www.youtube.com/watch?v=...">
-            <small class="help">有網址就固定顯示網頁；建議使用 HTTPS，HTTP 未加密會顯示提醒。</small>
+            <input id="focus-url" type="text" maxlength="2048" aria-describedby="url-help" placeholder="例如：www.youtube.com/watch?v=...">
+            <small id="url-help" class="help">只接受 HTTPS。部分網站禁止嵌入；遇到空白可切回內建專注畫面。手機版不能限制其他 App。</small>
           </label>
+          <label><span>錯過開始時間時</span><select id="catch-up"><option value="yes">5 分鐘內補跑一次</option><option value="no">只在指定分鐘啟動，錯過就跳過</option></select></label>
 
           <div class="switch-row">
             <div>
@@ -113,7 +121,7 @@
               <small>關閉後會保留設定，但時間到不會啟動。</small>
             </div>
             <label class="switch" aria-label="啟用排程">
-              <input id="enabled" type="checkbox" checked>
+              <input id="enabled" type="checkbox" aria-label="啟用排程" checked>
               <span></span>
             </label>
           </div>
@@ -132,12 +140,17 @@
           <span id="schedule-count" class="count">0 個</span>
         </div>
         <div id="schedule-list" class="schedule-list"></div>
+        <div class="backup-actions">
+          <button id="export-schedules" class="secondary-button" type="button">匯出備份</button>
+          <button id="import-schedules" class="secondary-button" type="button">匯入備份</button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p class="help">備份包含排程名稱與網址，請自行妥善保管。匯入前會再次確認。</p>
       </article>
     </section>
 
     <footer>
-      <span id="platform-note">關閉視窗後，程式仍會在 Windows 通知區等待排程。</span>
-      <span id="platform-safety">安全提醒：Ctrl + Alt + Delete 仍可使用。</span>
+      <span>資料只儲存在目前裝置；建議定期匯出備份。</span>
     </footer>
   </main>
 
@@ -148,6 +161,18 @@
       <p>從左邊新增第一個自律時鐘吧。</p>
     </div>
   </template>
+
+  <dialog id="action-confirm" aria-labelledby="action-confirm-title">
+    <h2 id="action-confirm-title">確認操作</h2><p id="action-confirm-message"></p>
+    <form method="dialog"><button value="cancel" autofocus>取消</button><button value="confirm">確認</button></form>
+  </dialog>
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <h2 id="export-title">排程備份</h2>
+    <p>備份含排程名稱與網址，請妥善保管。若裝置不支援下載，可選取下方文字複製，存成 .json 檔。</p>
+    <label for="backup-text">備份內容</label><textarea id="backup-text" readonly spellcheck="false"></textarea>
+    <a id="backup-download" download="focus-clock-backup.json">下載 JSON 備份</a>
+    <form method="dialog"><button>關閉</button></form>
+  </dialog>
 
   <script src="logic.js"></script>
   <script src="web-adapter.js"></script>

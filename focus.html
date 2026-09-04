@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: http:; style-src 'self'; script-src 'self'; img-src 'self' data: https: http:; frame-src https: http:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: https:; frame-src https:; object-src 'none'">
   <title>專注進行中</title>
   <link rel="stylesheet" href="focus.css">
 </head>
@@ -21,7 +21,7 @@
         <small>剩餘時間</small>
         <strong id="countdown">--:--</strong>
       </div>
-      <button id="emergency-button" type="button">
+      <button id="emergency-button" type="button" aria-label="按住滑鼠、Enter 或空白鍵五秒，申請緊急解鎖">
         <span id="exit-hint">長按 5 秒緊急解鎖</span>
         <i id="hold-progress"></i>
       </button>
@@ -35,8 +35,13 @@
         <div class="tomato">番</div>
       </section>
       <section id="web-area" class="web-area" hidden>
+        <aside id="web-help" class="web-help" hidden>
+          <p id="web-help-message" role="status">網站可能禁止嵌入。如果看不到內容，可切回內建畫面；倒數仍會繼續。</p>
+          <button id="use-lock-screen" type="button">改用內建專注畫面</button>
+          <a id="open-focus-site" target="_blank" rel="noopener noreferrer">在瀏覽器開啟網站（此處倒數仍繼續）</a>
+        </aside>
         <webview id="focus-webview" partition="focus-web" preload="./focus-web-preload.js"></webview>
-        <iframe id="focus-frame" title="專注網站" hidden></iframe>
+        <iframe id="focus-frame" title="專注網站" sandbox="allow-scripts allow-same-origin allow-forms" referrerpolicy="no-referrer" hidden></iframe>
       </section>
       <section id="load-error" class="load-error" hidden>
         <div class="tomato">!</div>
@@ -53,7 +58,7 @@
     <button id="close-notice" type="button" aria-label="關閉提示">×</button>
   </aside>
 
-  <aside id="rest-reminder" class="rest-toast" hidden>
+  <aside id="rest-reminder" class="rest-toast" role="status" hidden>
     <div class="rest-card">
       <span>休息提醒</span>
       <strong>你已經專注一小時了</strong>
@@ -62,11 +67,11 @@
     </div>
   </aside>
 
-  <div id="unlock-confirm" class="modal-backdrop" hidden>
+  <div id="unlock-confirm" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="unlock-title" aria-describedby="unlock-description" hidden>
     <div class="unlock-card">
       <span>緊急解鎖</span>
-      <h2>確定要提前結束嗎？</h2>
-      <p>正式專注還沒結束。只有遇到緊急狀況時才建議退出。</p>
+      <h2 id="unlock-title">確定要提前結束嗎？</h2>
+      <p id="unlock-description">正式專注還沒結束。只有遇到緊急狀況時才建議退出。</p>
       <div>
         <button id="cancel-unlock" type="button">繼續專注</button>
         <button id="confirm-unlock" class="danger-button" type="button">確定解鎖</button>
@@ -74,6 +79,7 @@
     </div>
   </div>
 
+  <script src="logic.js"></script>
   <script src="focus.js"></script>
 </body>
 </html>

@@ -29,7 +29,7 @@ function setSelectedTime(time = '08:30') {
 }
 
 function makeId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return window.focusClockLogic.makeScheduleId();
 }
 
 function showMessage(text) {
@@ -46,6 +46,7 @@ function resetForm() {
   setSelectedTime('08:30');
   document.querySelector('#duration').value = '45';
   document.querySelector('#enabled').checked = true;
+  document.querySelector('#catch-up').value = 'yes';
   document.querySelector('#form-title').textContent = '新增自律時鐘';
   warning.hidden = true;
 }
@@ -97,7 +98,7 @@ function renderSchedules() {
       <div>
         <div class="schedule-time">${escapeText(schedule.time)}</div>
         <label class="switch mini-switch" title="啟用或停用">
-          <input class="card-toggle" type="checkbox" ${schedule.enabled ? 'checked' : ''}>
+          <input class="card-toggle" type="checkbox" aria-label="啟用或停用 ${escapeText(schedule.title).replaceAll('"', '&quot;')}" ${schedule.enabled ? 'checked' : ''}>
           <span></span>
         </label>
       </div>
@@ -118,19 +119,8 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const id = document.querySelector('#schedule-id').value || makeId();
   const urlText = document.querySelector('#focus-url').value.trim();
-  let url = urlText;
-
-  if (urlText && !/^https?:\/\//i.test(urlText)) url = `https://${urlText}`;
-  if (url) {
-    try {
-      const checked = new URL(url);
-      if (!['http:', 'https:'].includes(checked.protocol)) throw new Error();
-      url = checked.toString();
-    } catch {
-      showMessage('網址格式不正確，請重新檢查。');
-      return;
-    }
-  }
+  const url = window.focusClockLogic.normalizeUrl(urlText);
+  if (urlText && !url) { showMessage('專注網址只接受 HTTPS，不能包含帳號或密碼。'); return; }
 
   const schedule = {
     id,
@@ -139,6 +129,7 @@ form.addEventListener('submit', async (event) => {
     duration: Number(durationInput.value),
     url,
     enabled: document.querySelector('#enabled').checked,
+    catchUp: document.querySelector('#catch-up').value === 'yes',
     lastRunDate: (() => {
       const previous = schedules.find((item) => item.id === id);
       return previous && previous.time === selectedTime() ? previous.lastRunDate : '';
@@ -158,9 +149,7 @@ form.addEventListener('submit', async (event) => {
   schedules = result.schedules;
   renderSchedules();
   resetForm();
-  showMessage(url.startsWith('http://')
-    ? '已儲存；提醒：HTTP 網址未加密，建議改用 HTTPS。'
-    : '已儲存，每天會在設定時間啟動。');
+  showMessage('已儲存；請保持程式執行，並留意上方的平台限制。');
 });
 
 list.addEventListener('click', async (event) => {
@@ -183,13 +172,14 @@ list.addEventListener('click', async (event) => {
     durationInput.value = schedule.duration;
     document.querySelector('#focus-url').value = schedule.url;
     document.querySelector('#enabled').checked = schedule.enabled;
+    document.querySelector('#catch-up').value = schedule.catchUp === false ? 'no' : 'yes';
     document.querySelector('#form-title').textContent = '編輯自律時鐘';
     warning.hidden = schedule.duration <= 60;
     document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
   }
 
   if (button.dataset.action === 'delete') {
-    if (!confirm(`確定要刪除「${schedule.title}」嗎？`)) return;
+    if (!await confirmAction(`確定要刪除「${schedule.title}」嗎？此操作不能復原，建議先匯出備份。`)) return;
     const wasEditing = document.querySelector('#schedule-id').value === schedule.id;
     const nextSchedules = schedules.filter((item) => item.id !== schedule.id);
     const result = await window.focusClock.saveSchedules(nextSchedules);
@@ -200,6 +190,7 @@ list.addEventListener('click', async (event) => {
     schedules = result.schedules;
     renderSchedules();
     if (wasEditing) resetForm();
+    document.querySelector('#title').focus();
     showMessage('排程已刪除，可以繼續新增或修改時間。');
   }
 });
@@ -217,6 +208,53 @@ list.addEventListener('change', async (event) => {
   }
   schedules = result.schedules;
   renderSchedules();
+  list.querySelectorAll('.schedule-card').forEach((element) => {
+    if (element.dataset.id === schedule.id) element.querySelector('.card-toggle').focus();
+  });
+});
+
+function confirmAction(text) {
+  const dialog = document.querySelector('#action-confirm');
+  if (dialog.open) return Promise.resolve(false);
+  document.querySelector('#action-confirm-message').textContent = text;
+  dialog.returnValue = 'cancel';
+  return new Promise((resolve) => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), { once: true });
+    dialog.showModal();
+  });
+}
+
+let backupObjectUrl;
+document.querySelector('#export-schedules').addEventListener('click', () => {
+  const data = window.focusClockLogic.scheduleDocument(schedules);
+  const text = JSON.stringify(data, null, 2);
+  if (backupObjectUrl) URL.revokeObjectURL(backupObjectUrl);
+  backupObjectUrl = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  document.querySelector('#backup-text').value = text;
+  document.querySelector('#backup-download').href = backupObjectUrl;
+  document.querySelector('#export-dialog').showModal();
+});
+document.querySelector('#export-dialog').addEventListener('close', () => {
+  if (backupObjectUrl) URL.revokeObjectURL(backupObjectUrl);
+  backupObjectUrl = null;
+  document.querySelector('#backup-download').removeAttribute('href');
+  document.querySelector('#backup-text').value = '';
+});
+document.querySelector('#import-schedules').addEventListener('click', () => document.querySelector('#import-file').click());
+document.querySelector('#import-file').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  try {
+    if (file.size > 1024 * 1024) throw new Error('備份檔不得超過 1 MB。');
+    const decoded = window.focusClockLogic.decodeSchedules(JSON.parse(await file.text()));
+    if (!await confirmAction(`將以 ${decoded.schedules.length} 個排程取代目前排程。${decoded.message} 建議先匯出原本備份。確定匯入？`)) return;
+    const result = await window.focusClock.saveSchedules(decoded.schedules);
+    if (!result.ok) throw new Error(result.message);
+    schedules = result.schedules;
+    renderSchedules(); resetForm();
+    showMessage(`已匯入。${decoded.message}`);
+  } catch (error) { showMessage(`匯入失敗：${error.message}`); }
 });
 
 durationInput.addEventListener('input', () => {
@@ -243,7 +281,11 @@ window.focusClock.onFocusStatusChanged((detail) => {
 window.focusClock.onSettingsChanged((settings) => {
   renderShortcutSettings(settings);
 });
-window.focusClock.onAppMessage(showMessage);
+window.focusClock.onAppMessage((text) => {
+  showMessage(text);
+  const element = document.querySelector('#data-warning');
+  element.textContent = text; element.hidden = !text;
+});
 setInterval(updateClock, 1000);
 fillTimeChoices();
 setSelectedTime('08:30');
