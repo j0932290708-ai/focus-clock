@@ -1,0 +1,90 @@
+name: Focus Clock regression
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-regression-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+  windows-interface:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # 僅在獨立的 CI Windows 執行器明確允許測試視窗，不在使用者桌面自動啟動。
+      - run: npm run test:desktop -- --allow-window
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-interface-results
+          path: test-results/native/
+          retention-days: 14
+  android-interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 36]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - run: npm ci
+      - run: chmod +x android/gradlew
+      - run: npm run android:apk
+      # 僅修改一次性的 CI 虛擬機，不修改使用者電腦或連接真機。
+      - name: Allow this runner to use its virtual device
+        run: sudo setfacl -m u:$(whoami):rw /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: default
+          arch: x86_64
+          avd-name: FocusClockQA${{ matrix.api }}
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: node scripts/test-android-ci.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-${{ matrix.api }}-interface-results
+          path: |
+            test-results/android/
+            playwright-report/android/
+          retention-days: 14
