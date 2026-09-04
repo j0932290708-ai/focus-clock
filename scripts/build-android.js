@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const androidDirectory = path.resolve(__dirname, '..', 'android');
 const wrapper = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
-const result = spawnSync(wrapper, ['assembleDebug'], {
+const result = spawnSync(wrapper, ['assembleDebug', '--no-daemon', '--stacktrace', '--console=plain'], {
   cwd: androidDirectory,
   stdio: 'inherit',
   shell: process.platform === 'win32'
