@@ -2,6 +2,7 @@
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
+const { verifyTestEmulator } = require('./android-test-device');
 const root = path.resolve(__dirname, '..');
 function adb(args) {
   const result = spawnSync('adb', args, { encoding: 'utf8', timeout: 120000, windowsHide: true });
@@ -14,8 +15,7 @@ try {
     .map(line => /^(emulator-\d+)\s+device$/.exec(line)?.[1]).filter(Boolean);
   if (serials.length !== 1) throw new Error('必須只有一個已就緒的測試模擬器。');
   const serial = serials[0];
-  const name = adb(['-s', serial, 'shell', 'getprop', 'ro.boot.qemu.avd_name']);
-  if (!/^FocusClockQA\d+$/.test(name)) throw new Error('拒絕安裝至非 FocusClockQA 測試裝置。');
+  const name = verifyTestEmulator(serial);
   const apk = path.join(root, 'android/app/build/outputs/apk/debug/app-debug.apk');
   if (!fs.existsSync(apk)) throw new Error('找不到本次建置 APK，不使用舊附件代替。');
   const reportDir = path.join(root, 'test-results/android');
