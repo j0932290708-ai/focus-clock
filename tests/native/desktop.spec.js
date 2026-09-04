@@ -45,8 +45,21 @@ test('桌面 CRUD、時間選單、四組快捷鍵套用、備份保存', async 
   await page.getByRole('button', { name: '匯出備份', exact: true }).click();
   const backup = JSON.parse(await page.locator('#backup-text').inputValue());
   expect(backup.schedules[0].time).toBe('12:42');
-  const download = page.waitForEvent('download'); await page.locator('#backup-download').click();
-  await (await download).saveAs(path.join(profile, 'export.json'));
+  const exportPath = path.join(profile, 'export.json');
+  // Electron 使用原生下載流程；測試指定隔離輸出位置，不等待瀏覽器專用 download 事件。
+  // 仍實際按下載按鈕、等候 DownloadItem 完成並核對磁碟內容，不偽造備份檔。
+  await desktop.evaluate(({ app, session }, savePath) => {
+    app.qaBackupDownload = { state: 'waiting' };
+    session.defaultSession.once('will-download', (_event, item) => {
+      app.qaBackupDownload = { state: 'started', name: item.getFilename() };
+      item.setSavePath(savePath);
+      item.once('done', (_doneEvent, state) => { app.qaBackupDownload.state = state; });
+    });
+  }, exportPath);
+  await page.locator('#backup-download').click();
+  await expect.poll(() => desktop.evaluate(({ app }) => app.qaBackupDownload.state), { timeout: 10000 }).toBe('completed');
+  expect(await desktop.evaluate(({ app }) => app.qaBackupDownload.name)).toBe('focus-clock-backup.json');
+  expect(JSON.parse(await fs.readFile(exportPath, 'utf8'))).toEqual(backup);
   await page.getByRole('button', { name: '關閉', exact: true }).click();
   await page.getByRole('button', { name: '編輯', exact: true }).click();
   await page.getByRole('button', { name: '刪除', exact: true }).click();
