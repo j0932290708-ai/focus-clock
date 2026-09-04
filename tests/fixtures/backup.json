@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "schedules": [
+    { "id": "backup-demo", "title": "備份測試", "time": "10:30", "duration": 45, "url": "", "enabled": false, "catchUp": true, "lastRunDate": "" }
+  ]
+}
