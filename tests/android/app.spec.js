@@ -1,6 +1,7 @@
 // 僅在專用 FocusClockQA 模擬器執行，會清除該模擬器內本 App 的測試資料。
 // 不連接使用者手機。操作的是 APK 內真正的 Android WebView，不是手機尺寸網頁。
 const { test, expect, _android } = require('@playwright/test');
+const { verifyTestEmulator } = require('../../scripts/android-test-device');
 const pkg = 'tw.student.focusclock';
 let device;
 let page;
@@ -11,8 +12,7 @@ test.beforeAll(async () => {
   const devices = await _android.devices({ omitDriverInstall: true });
   device = devices.find(item => item.serial() === serial);
   if (!device) throw new Error('指定的模擬器未連線。');
-  const name = (await device.shell('getprop ro.boot.qemu.avd_name')).toString().trim();
-  if (!name.startsWith('FocusClockQA')) throw new Error(`拒絕清除非測試裝置：${name}`);
+  verifyTestEmulator(serial);
   device.setDefaultTimeout(20000);
 });
 
