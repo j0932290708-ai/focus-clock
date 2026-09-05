@@ -80,7 +80,8 @@ test('桌面 CRUD、時間選單、四組快捷鍵套用、備份保存', async 
 test('安全測試 Shift+S、右鍵、Escape 及滑鼠和鍵盤長按退出', async () => {
   await add();
   for (const action of ['shift', 'right', 'escape', 'mouse', 'keyboard']) {
-    const focus = await preview(); const closed = focus.waitForEvent('close');
+    console.log(`驗證安全測試退出方式：${action}`);
+    const focus = await preview(); const closed = focus.waitForEvent('close', { timeout: 12000 });
     if (action === 'shift') await focus.keyboard.press('Shift+S').catch(() => {});
     if (action === 'right') await focus.locator('#lock-screen').click({ button: 'right' }).catch(() => {});
     if (action === 'escape') await focus.keyboard.press('Escape').catch(() => {});
