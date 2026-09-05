@@ -6,11 +6,11 @@ const vm = require('node:vm');
 const logic = require('../logic');
 const source = fs.readFileSync(path.join(__dirname, '../focus.js'), 'utf8');
 const settle = () => new Promise(resolve => setImmediate(resolve));
-async function focus({ desktop = false, malformed = false } = {}) {
+async function focus({ desktop = false, malformed = false, preview = false } = {}) {
   let now = 100000; let id = 0; let requested = 0; let released = 0; let unlocked = 0;
   const elements = new Map(); const windowEvents = {}; const documentEvents = {}; const intervals = new Map();
   const snapshots = new Map(); const navigations = [];
-  const snapshot = { id: 'test', title: '讀書', time: '08:30', duration: 120, url: '', enabled: true, preview: false, startedAt: now, endsAt: now + 120 * 60000 };
+  const snapshot = { id: 'test', title: '讀書', time: '08:30', duration: 120, url: '', enabled: true, preview, startedAt: now, endsAt: now + 120 * 60000 };
   snapshots.set('focus-clock-current', malformed ? '{broken' : JSON.stringify(snapshot));
   const document = { visibilityState: 'visible', documentElement: { dataset: {} }, activeElement: null,
     querySelector(selector) {
@@ -49,6 +49,15 @@ test('FC-P2-05/08：pointercancel、blur 取消長按，鍵盤按住五秒開確
   assert.equal(app.document.activeElement, app.element('#cancel-unlock'));
   assert.equal(app.unlocked, 0);
   app.element('#confirm-unlock').events.click(); assert.equal(app.unlocked, 1);
+});
+test('安全測試畫面層備援：Shift+S、Escape 與右鍵都能退出', async () => {
+  const app = await focus({ desktop: true, preview: true });
+  let prevented = 0;
+  app.windowEvents.keydown({ key: 'S', shiftKey: true, ctrlKey: false, altKey: false, preventDefault() { prevented++; } });
+  app.windowEvents.keydown({ key: 'Escape', shiftKey: false, ctrlKey: false, altKey: false, preventDefault() { prevented++; } });
+  app.windowEvents.contextmenu({ preventDefault() { prevented++; } });
+  assert.equal(app.unlocked, 3);
+  assert.equal(prevented, 3);
 });
 test('FC-P2-06：內建備案、休息提醒與倒數完成不依賴遠端頁面', async () => {
   const app = await focus(); app.advance(60 * 60000);

@@ -22,7 +22,8 @@ function run({ saved = [row], localFail = false, sessionFail = false, sessionDat
     querySelector: (selector) => selector === '#data-warning' ? warning : null, addEventListener() {} },
     navigator: {}, localStorage: storage(data, localFail), sessionStorage: storage(sessionData, sessionFail),
     location: { protocol: 'https:', hostname: 'test.invalid', assign: (url) => navigations.push(url) },
-    setTimeout: (fn) => timers.push(fn), setInterval: (fn) => intervals.push(fn), Date: Clock, structuredClone, URLSearchParams });
+    // 刻意不提供 structuredClone，模擬 Android 11 的舊版 System WebView。
+    setTimeout: (fn) => timers.push(fn), setInterval: (fn) => intervals.push(fn), Date: Clock, URLSearchParams });
   return { api: window.focusClock, data, sessionData, warning, intervals, navigations, flush: () => timers.splice(0).forEach((fn) => fn()) };
 }
 test('FC-P1-02：localStorage 配額滿仍啟動，返回／重載不重複啟動', () => {
