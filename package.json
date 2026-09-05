@@ -28,6 +28,7 @@
     "artifactName": "FocusClock-${version}-Windows.${ext}",
     "files": [
       "main.js",
+      "focus-window.js",
       "logic.js",
       "storage.js",
       "security.js",

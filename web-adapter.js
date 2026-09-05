@@ -219,6 +219,8 @@
   window.addEventListener('DOMContentLoaded', () => {
     const installButton = document.querySelector('#install-app-button');
     if (isNativeAndroid) {
+      installButton.textContent = '已安裝';
+      installButton.disabled = true;
       document.querySelector('#platform-note').textContent = 'Android 前景版：必須保持 App 開啟。切到背景、熄屏、關閉或被系統回收時，不保證準時啟動。';
       document.querySelector('#platform-safety').textContent = 'Android App 不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
     } else {

@@ -4,6 +4,7 @@ const {
 } = require('electron');
 const path = require('node:path');
 const { createStore } = require('./storage');
+const { disposeFocusWindow } = require('./focus-window');
 const { isTrustedSender, hasSafePayload } = require('./security');
 const {
   cleanSchedule, findOverlappingPair, isSameOriginUrl,
@@ -420,7 +421,7 @@ function endFocus(reason = 'completed') {
   };
   clearFocusEndTimer();
   allowFocusClose = true;
-  focusWindow.close();
+  disposeFocusWindow(focusWindow);
 }
 
 async function checkSchedules() {
