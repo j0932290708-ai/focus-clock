@@ -3,6 +3,9 @@
 
   const logic = window.focusClockLogic;
   const schedulesKey = 'focus-clock-schedules';
+  // Android 11 的舊版 System WebView 可能沒有 structuredClone；排程是純 JSON，
+  // 使用相容的複製方式，避免儲存、開關與驗證按鈕整批失效。
+  const clone = (value) => JSON.parse(JSON.stringify(value));
   const changedListeners = [];
   const statusListeners = [];
   const messageListeners = [];
@@ -65,7 +68,7 @@
   }
 
   function readSchedules() {
-    if (cachedSchedules) return structuredClone(cachedSchedules);
+    if (cachedSchedules) return clone(cachedSchedules);
     let rawText = null;
     try {
       rawText = localStorage.getItem(schedulesKey);
@@ -87,7 +90,7 @@
         warn('無法讀取排程，原始資料未刪除。請檢查儲存空間或匯入備份。');
       }
     }
-    return structuredClone(cachedSchedules);
+    return clone(cachedSchedules);
   }
 
   function writeSchedules(schedules) {
@@ -97,7 +100,7 @@
     try { logic.decodeSchedules(JSON.parse(previous)); validPrevious = Boolean(previous); } catch {}
     if (validPrevious) localStorage.setItem(`${schedulesKey}-backup`, previous);
     localStorage.setItem(schedulesKey, JSON.stringify(logic.scheduleDocument(schedules)));
-    cachedSchedules = structuredClone(schedules);
+    cachedSchedules = clone(schedules);
   }
 
   function beginFocus(schedule, preview, occurrence = null) {
@@ -219,6 +222,8 @@
   window.addEventListener('DOMContentLoaded', () => {
     const installButton = document.querySelector('#install-app-button');
     if (isNativeAndroid) {
+      installButton.textContent = '已安裝';
+      installButton.disabled = true;
       document.querySelector('#platform-note').textContent = 'Android 前景版：必須保持 App 開啟。切到背景、熄屏、關閉或被系統回收時，不保證準時啟動。';
       document.querySelector('#platform-safety').textContent = 'Android App 不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
     } else {

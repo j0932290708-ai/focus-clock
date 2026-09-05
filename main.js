@@ -2,11 +2,14 @@ const {
   app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu,
   nativeImage, powerSaveBlocker, session
 } = require('electron');
-const fs = require('node:fs');
 const path = require('node:path');
+const { createStore } = require('./storage');
+const { disposeFocusWindow } = require('./focus-window');
+const { isTrustedSender, hasSafePayload } = require('./security');
 const {
   cleanSchedule, findOverlappingPair, isSameOriginUrl,
-  lastRunDateAfterEdit, localDateKey, normalizeShortcut, shortcutCandidates, shouldStart
+  lastRunDateAfterEdit, normalizeShortcut, shortcutCandidates, dueOccurrence,
+  normalizeUrl, decodeSchedules, validateSchedules, scheduleDocument, ALLOWED_SHORTCUTS
 } = require('./logic');
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -15,6 +18,8 @@ let mainWindow;
 let focusWindow;
 let tray;
 let isQuitting = false;
+let storesFlushed = false;
+let flushingStores = false;
 let currentFocus = null;
 let powerBlockerId = null;
 let scheduleTimer = null;
@@ -24,35 +29,27 @@ let activeShortcut = null;
 let startupShortcutNotice = '';
 let pendingEndNotice = null;
 let focusWebSessionConfigured = false;
+let schedulesStore;
+let settingsStore;
+let polling = false;
+const launched = new Set();
+const startupWarnings = [];
+function reportWarning(message) {
+  startupWarnings.push(message);
+  if (startupWarnings.length > 20) startupWarnings.shift();
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('app-message', message);
+}
 
 function userFile(name) {
   return path.join(app.getPath('userData'), name);
 }
 
-function readJson(name, fallback) {
-  try {
-    return JSON.parse(fs.readFileSync(userFile(name), 'utf8'));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(name, value) {
-  fs.mkdirSync(path.dirname(userFile(name)), { recursive: true });
-  fs.writeFileSync(userFile(name), JSON.stringify(value, null, 2), 'utf8');
-}
-
 function readSchedules() {
-  const saved = readJson('schedules.json', []);
-  return Array.isArray(saved) ? saved.map(cleanSchedule) : [];
+  return schedulesStore.read().schedules;
 }
 
-function saveSchedules(schedules) {
-  const previousById = new Map(readSchedules().map((schedule) => [schedule.id, schedule]));
-  const cleaned = Array.isArray(schedules) ? schedules.map(cleanSchedule).map((schedule) => ({
-    ...schedule,
-    lastRunDate: lastRunDateAfterEdit(previousById.get(schedule.id), schedule)
-  })) : [];
+async function saveSchedules(schedules) {
+  const cleaned = validateSchedules(schedules);
   const overlap = findOverlappingPair(cleaned);
   if (overlap) {
     return {
@@ -61,12 +58,15 @@ function saveSchedules(schedules) {
       message: `「${overlap[0].title}」和「${overlap[1].title}」的時間重疊，請先調整其中一個排程。`
     };
   }
-  writeJson('schedules.json', cleaned);
-  return { ok: true, schedules: cleaned };
+  const saved = await schedulesStore.update((previous) => {
+    const previousById = new Map(previous.schedules.map((row) => [row.id, row]));
+    return scheduleDocument(cleaned.map((row) => ({ ...row, lastRunDate: lastRunDateAfterEdit(previousById.get(row.id), row) })));
+  });
+  return { ok: true, schedules: saved.schedules };
 }
 
 function readSettings() {
-  const saved = readJson('settings.json', {});
+  const saved = settingsStore.read();
   return { shortcut: normalizeShortcut(saved.shortcut) };
 }
 
@@ -90,7 +90,7 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
-function registerOpeningShortcut(requestedShortcut, save = false) {
+async function registerOpeningShortcut(requestedShortcut, save = false) {
   const nextShortcut = normalizeShortcut(requestedShortcut);
   if (nextShortcut === activeShortcut && globalShortcut.isRegistered(nextShortcut)) {
     return { ok: true, ...currentShortcutSettings() };
@@ -119,13 +119,20 @@ function registerOpeningShortcut(requestedShortcut, save = false) {
   }
 
   activeShortcut = nextShortcut;
-  if (save) writeJson('settings.json', { shortcut: activeShortcut });
+  if (save) {
+    try { await settingsStore.update(() => ({ shortcut: activeShortcut })); }
+    catch {
+      globalShortcut.unregister(nextShortcut);
+      activeShortcut = previousShortcut && globalShortcut.register(previousShortcut, showMainWindow) ? previousShortcut : null;
+      return { ok: false, ...currentShortcutSettings(), message: '快捷鍵設定無法保存，已還原原本設定。' };
+    }
+  }
   const result = { ok: true, ...currentShortcutSettings() };
   mainWindow?.webContents.send('settings-changed', result);
   return result;
 }
 
-function registerStartupShortcut(savedShortcut) {
+async function registerStartupShortcut(savedShortcut) {
   const preferred = normalizeShortcut(savedShortcut);
   const candidates = shortcutCandidates(preferred);
 
@@ -133,7 +140,8 @@ function registerStartupShortcut(savedShortcut) {
     if (!globalShortcut.register(candidate, showMainWindow)) continue;
     activeShortcut = candidate;
     if (candidate !== preferred) {
-      writeJson('settings.json', { shortcut: candidate });
+      try { await settingsStore.update(() => ({ shortcut: candidate })); }
+      catch { reportWarning('替代快捷鍵本次有效，但無法保存至磁碟。'); }
       startupShortcutNotice = `原本的快捷鍵 ${shortcutLabel(preferred)} 已被占用，已自動改用 ${shortcutLabel(candidate)}。`;
     }
     return;
@@ -156,12 +164,16 @@ function createMainWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
 
   mainWindow.loadFile('index.html');
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
   mainWindow.webContents.once('did-finish-load', () => {
+    startupWarnings.forEach((message) => mainWindow.webContents.send('app-message', message));
     if (!startupShortcutNotice) return;
     mainWindow.webContents.send('app-message', startupShortcutNotice);
     startupShortcutNotice = '';
@@ -212,6 +224,8 @@ function configureFocusSession() {
   const focusSession = session.fromPartition('focus-web');
   focusSession.setPermissionCheckHandler(() => false);
   focusSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  focusSession.setCertificateVerifyProc((_request, callback) => callback(-3));
+  focusSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'ws://*/*'] }, (_details, callback) => callback({ cancel: true }));
   focusSession.on('will-download', (event) => {
     event.preventDefault();
     sendFocusNotice('已阻止網站下載檔案。', 'warning');
@@ -230,10 +244,16 @@ function secureWebview(window) {
     webPreferences.preload = path.join(__dirname, 'focus-web-preload.js');
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = true;
+    webPreferences.sandbox = true;
+    webPreferences.webSecurity = true;
+    webPreferences.allowRunningInsecureContent = false;
+    webPreferences.nodeIntegrationInSubFrames = false;
+    webPreferences.partition = 'focus-web';
     webPreferences.devTools = false;
+    params.allowpopups = false;
 
     try {
-      if (!['http:', 'https:'].includes(new URL(params.src).protocol)) event.preventDefault();
+      if (!currentFocus?.url || !isSameOriginUrl(currentFocus.url, params.src)) event.preventDefault();
     } catch {
       event.preventDefault();
     }
@@ -256,6 +276,10 @@ function secureWebview(window) {
 
     guestContents.on('will-navigate', blockCrossOriginNavigation);
     guestContents.on('will-redirect', blockCrossOriginNavigation);
+    guestContents.on('will-frame-navigate', blockCrossOriginNavigation);
+    guestContents.on('render-process-gone', () => {
+      window.webContents.send('focus-load-failed', { message: '專注網站已停止回應，倒數仍會繼續。' });
+    });
 
     guestContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
       if (isMainFrame && errorCode !== -3) {
@@ -293,6 +317,7 @@ function scheduleFocusEnd() {
 
 function startFocus(rawSchedule, options = {}) {
   if (focusWindow) return { ok: false, message: '目前已有一個專注時鐘正在進行。' };
+  if (rawSchedule?.url && !normalizeUrl(rawSchedule.url)) return { ok: false, message: '專注網址只接受 HTTPS。' };
 
   const schedule = cleanSchedule(rawSchedule);
   const preview = options.preview === true;
@@ -319,6 +344,9 @@ function startFocus(rawSchedule, options = {}) {
         preload: path.join(__dirname, 'focus-preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
+        sandbox: true,
+        webSecurity: true,
+        allowRunningInsecureContent: false,
         webviewTag: true,
         devTools: false
       }
@@ -331,16 +359,19 @@ function startFocus(rawSchedule, options = {}) {
   }
 
   focusWindow.setMenu(null);
+  focusWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  focusWindow.webContents.on('will-navigate', (event) => event.preventDefault());
+  focusWindow.webContents.on('render-process-gone', () => endFocus('renderer-failed'));
   secureWebview(focusWindow);
   if (!preview) {
     focusWindow.setAlwaysOnTop(true, 'screen-saver');
     focusWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
-  focusWindow.loadFile('focus.html');
+  focusWindow.loadFile('focus.html').catch(() => endFocus('load-failed'));
 
   focusWindow.webContents.on('before-input-event', (event, input) => {
     if (preview && isPreviewExit(input)) {
-      event.preventDefault();
+      // 不攔截預覽按鍵，讓 focus.js 的畫面層備援也有機會收到事件。
       endFocus('preview-exit');
       return;
     }
@@ -390,34 +421,62 @@ function endFocus(reason = 'completed') {
   };
   clearFocusEndTimer();
   allowFocusClose = true;
-  focusWindow.close();
+  disposeFocusWindow(focusWindow);
 }
 
-function checkSchedules() {
-  if (focusWindow) return;
+async function checkSchedules() {
+  if (focusWindow || polling) return;
   const now = new Date();
   const schedules = readSchedules();
-  const due = schedules.find((schedule) => shouldStart(schedule, now));
+  const due = schedules.find((schedule) => {
+    const occurrence = dueOccurrence(schedule, now);
+    return occurrence && !launched.has(occurrence.key);
+  });
   if (!due) return;
 
   const result = startFocus(due, { preview: false });
   if (result.ok) {
-    due.lastRunDate = localDateKey(now);
-    writeJson('schedules.json', schedules);
-    mainWindow?.webContents.send('schedules-changed');
+    const occurrence = dueOccurrence(due, now);
+    launched.add(occurrence.key);
+    polling = true;
+    try {
+      await schedulesStore.update((saved) => scheduleDocument(saved.schedules.map((row) => row.id === due.id && row.time === due.time ? { ...row, lastRunDate: occurrence.runDate } : row)));
+      mainWindow?.webContents.send('schedules-changed');
+    } catch {
+      reportWarning('本次專注已啟動，但執行紀錄無法保存；本次程式執行期間不會重複啟動。');
+      sendFocusNotice('執行紀錄無法保存，請在結束後檢查磁碟。', 'warning');
+    } finally { polling = false; }
   } else {
     mainWindow?.webContents.send('app-message', result.message);
   }
 }
 
 function registerMessages() {
-  ipcMain.handle('schedules:get', () => readSchedules());
-  ipcMain.handle('schedules:save', (_event, schedules) => saveSchedules(schedules));
-  ipcMain.handle('focus:start', (_event, schedule) => startFocus(schedule, { preview: true }));
-  ipcMain.handle('focus:get-current', () => currentFocus);
-  ipcMain.handle('focus:emergency-unlock', () => endFocus('emergency'));
-  ipcMain.handle('settings:get', () => currentShortcutSettings());
-  ipcMain.handle('settings:set-shortcut', (_event, shortcut) => registerOpeningShortcut(shortcut, true));
+  function handle(channel, scope, callback) {
+    ipcMain.handle(channel, async (event, payload) => {
+      const window = scope === 'main' ? mainWindow : focusWindow;
+      const file = path.join(__dirname, scope === 'main' ? 'index.html' : 'focus.html');
+      if (!isTrustedSender(event, window, file) || !hasSafePayload(payload)) {
+        console.warn(`[IPC] rejected ${channel}`); // 只記錄通道，不記錄網址與使用者資料。
+        return { ok: false, code: 'UNTRUSTED_SENDER', message: '此視窗沒有操作權限。' };
+      }
+      if (isQuitting) return { ok: false, code: 'APP_CLOSING', message: '程式正在關閉，請重新開啟後再操作。' };
+      try { return await callback(payload); }
+      catch (error) {
+        return { ok: false, code: 'INVALID_OR_UNSAVED', schedules: readSchedules(), message: error.code ? '資料無法保存，請檢查磁碟與權限；原排程仍保留。' : error.message };
+      }
+    });
+  }
+  handle('schedules:get', 'main', () => readSchedules());
+  handle('schedules:save', 'main', saveSchedules);
+  handle('focus:start', 'main', (schedule) => startFocus(validateSchedules([schedule])[0], { preview: true }));
+  handle('focus:get-current', 'focus', () => currentFocus);
+  handle('focus:emergency-unlock', 'focus', () => endFocus('emergency'));
+  handle('settings:get', 'main', () => currentShortcutSettings());
+  handle('settings:set-shortcut', 'main', (shortcut) => {
+    if (!ALLOWED_SHORTCUTS.includes(shortcut)) throw new Error('不支援這組快捷鍵。');
+    return registerOpeningShortcut(shortcut, true);
+  });
 }
 
 if (!hasSingleInstanceLock) {
@@ -425,23 +484,42 @@ if (!hasSingleInstanceLock) {
 } else {
   app.on('second-instance', showMainWindow);
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    schedulesStore = await createStore(userFile('schedules.json'), scheduleDocument([]), (raw) => {
+      const decoded = decodeSchedules(raw);
+      if (decoded.message) reportWarning(decoded.message);
+      return scheduleDocument(decoded.schedules);
+    }, reportWarning);
+    settingsStore = await createStore(userFile('settings.json'), {}, (raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('快捷鍵設定損壞。');
+      return { shortcut: normalizeShortcut(raw.shortcut) };
+    }, reportWarning);
     registerMessages();
     const savedShortcut = readSettings().shortcut;
-    registerStartupShortcut(savedShortcut);
+    await registerStartupShortcut(savedShortcut);
     createMainWindow();
     createTray();
 
     scheduleTimer = setInterval(checkSchedules, 1000);
     checkSchedules();
-  });
+  }).catch((error) => { console.error('無法初始化資料儲存：', error.code || 'INIT_FAILED'); app.quit(); });
 }
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   isQuitting = true;
   allowFocusClose = true;
   clearInterval(scheduleTimer);
   clearFocusEndTimer();
+  // 等候已接受的寫入完成，再離開，避免關閉時只寫了一半。
+  if (!storesFlushed) {
+    event.preventDefault();
+    if (flushingStores) return;
+    flushingStores = true;
+    Promise.allSettled([schedulesStore?.flush(), settingsStore?.flush()]).finally(() => {
+      storesFlushed = true;
+      app.quit();
+    });
+  }
 });
 
 app.on('will-quit', () => globalShortcut.unregisterAll());

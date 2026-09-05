@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test tests/logic.test.js",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test",
+    "test:desktop": "node scripts/run-desktop-tests.js",
+    "test:android": "playwright test -c playwright.android.config.js",
     "dist:win": "electron-builder --win portable",
     "build:web": "node scripts/build-web.js",
     "android:add": "npm run build:web && node scripts/run-capacitor.js add android",
@@ -13,7 +16,9 @@
     "android:apk": "npm run android:sync && node scripts/build-android.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@capacitor/cli": "^8.5.1",
+    "@playwright/test": "^1.62.1",
     "electron": "^44.0.0",
     "electron-builder": "^26.15.3"
   },
@@ -23,7 +28,10 @@
     "artifactName": "FocusClock-${version}-Windows.${ext}",
     "files": [
       "main.js",
+      "focus-window.js",
       "logic.js",
+      "storage.js",
+      "security.js",
       "preload.js",
       "focus-preload.js",
       "focus-web-preload.js",
