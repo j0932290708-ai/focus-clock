@@ -65,6 +65,9 @@ test('APK 安裝辨識、新增修改、開關、重啟保存及刪除後改時�
   await page.locator('#start-minute').selectOption('25');
   await page.getByRole('button', { name: '儲存自律時鐘', exact: true }).click();
   await expect(page.locator('.schedule-time')).toHaveText('11:25');
+  // 一般 Android 使用情境會先回到主畫面，再由系統停止 App；讓 WebView 完成落盤。
+  await device.shell('input keyevent KEYCODE_HOME');
+  await device.shell('sleep 1');
   await device.shell(`am force-stop ${pkg}`);
   await launch();
   await expect(page.locator('.schedule-time')).toHaveText('11:25');
