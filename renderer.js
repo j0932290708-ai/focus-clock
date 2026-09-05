@@ -189,7 +189,12 @@ list.addEventListener('click', async (event) => {
     }
     schedules = result.schedules;
     renderSchedules();
-    if (wasEditing) resetForm();
+    // 刪除目前正在編輯的排程時，只退出編輯狀態，保留使用者剛選的時間與表單內容。
+    // 這也避免非同步儲存完成後才 resetForm，覆蓋使用者在確認刪除後立刻做的新選擇。
+    if (wasEditing) {
+      document.querySelector('#schedule-id').value = '';
+      document.querySelector('#form-title').textContent = '新增自律時鐘';
+    }
     document.querySelector('#title').focus();
     showMessage('排程已刪除，可以繼續新增或修改時間。');
   }
