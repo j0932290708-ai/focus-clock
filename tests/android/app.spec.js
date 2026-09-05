@@ -33,8 +33,9 @@ test.beforeEach(async () => {
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
-    location.replace('index.html');
   });
+  // goto 會等新首頁完成，避免在 location.replace 尚未換頁時誤按舊畫面。
+  await page.goto(new URL('index.html', page.url()).href);
   await expect(page.locator('#schedule-form')).toBeVisible();
 });
 
