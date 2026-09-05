@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const logic = require('../logic');
 const source = fs.readFileSync(path.join(__dirname, '../web-adapter.js'), 'utf8');
 const rendererSource = fs.readFileSync(path.join(__dirname, '../renderer.js'), 'utf8');
+const focusCss = fs.readFileSync(path.join(__dirname, '../focus.css'), 'utf8');
 const key = 'focus-clock-schedules';
 const row = { id: 'test', title: '讀書', time: '08:30', duration: 45, enabled: true, url: '' };
 function storage(data, fail = false) {
@@ -61,4 +62,5 @@ test('FC-P2-02：在背景不啟動；手動啟動拒絕不安全網址', async 
 test('Android 11 舊版 WebView 不依賴 replaceAll 或 structuredClone', () => {
   assert.doesNotMatch(rendererSource, /\.replaceAll\(/);
   assert.doesNotMatch(source, /\bstructuredClone\s*\(/);
+  assert.doesNotMatch(focusCss.match(/\.modal-backdrop\s*\{[^}]+\}/)?.[0] || '', /\binset\s*:/);
 });
