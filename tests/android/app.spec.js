@@ -14,6 +14,9 @@ test.beforeAll(async () => {
   if (!device) throw new Error('指定的模擬器未連線。');
   verifyTestEmulator(serial);
   device.setDefaultTimeout(20000);
+  await device.shell(`am force-stop ${pkg}`);
+  expect((await device.shell(`pm clear ${pkg}`)).toString()).toContain('Success');
+  await launch();
 });
 
 async function launch() {
@@ -25,18 +28,26 @@ async function launch() {
 }
 
 test.beforeEach(async () => {
-  await device.shell(`am force-stop ${pkg}`);
-  expect((await device.shell(`pm clear ${pkg}`)).toString()).toContain('Success');
-  await launch();
+  // Playwright 的舊 Android WebView 連線在反覆 force-stop 後可能短暫保留舊頁面。
+  // 測試間清除本 App 儲存並回首頁；只有重啟保存案例會真的停止並重開程序。
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    location.replace('index.html');
+  });
+  await expect(page.locator('#schedule-form')).toBeVisible();
 });
 
 test.afterEach(async ({}, info) => {
   if (page && !page.isClosed()) {
     await info.attach('Android WebView 畫面', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   }
-  if (device) await device.shell(`am force-stop ${pkg}`);
 });
-test.afterAll(async () => { if (device) await device.close(); });
+test.afterAll(async () => {
+  if (!device) return;
+  await device.shell(`am force-stop ${pkg}`);
+  await device.close();
+});
 
 async function add({ title = 'Android 測試', duration = '45', url = '' } = {}) {
   await page.locator('#title').fill(title);
