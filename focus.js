@@ -179,7 +179,8 @@ window.addEventListener('blur', cancelEmergencyHold);
 // 安全測試提供畫面層備援：即使 Electron 的原生輸入事件在某些 Windows
 // 環境沒有送達，Shift+S、Escape 與右鍵仍能確實結束預覽。
 window.addEventListener('keydown', (event) => {
-  if (!session?.preview) return;
+  // 網頁／手機版的 Escape 用於關閉「直接結束」確認框；只有 Windows 預覽才直接退出。
+  if (isWebApp || !session?.preview) return;
   const shouldExit = event.key === 'Escape' ||
     (event.shiftKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 's');
   if (!shouldExit) return;
@@ -187,8 +188,9 @@ window.addEventListener('keydown', (event) => {
   focusApi.emergencyUnlock();
 });
 window.addEventListener('contextmenu', (event) => {
+  if (isWebApp || !session?.preview) return;
   event.preventDefault();
-  if (session?.preview) focusApi.emergencyUnlock();
+  focusApi.emergencyUnlock();
 });
 window.addEventListener('pagehide', cleanup);
 window.addEventListener('pageshow', (event) => {

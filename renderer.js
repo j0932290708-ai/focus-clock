@@ -57,7 +57,7 @@ async function loadSchedules() {
 }
 
 function shortcutLabel(value) {
-  return value.replace('CommandOrControl', 'Ctrl').replaceAll('+', ' + ');
+  return value.replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ');
 }
 
 async function loadSettings() {
@@ -98,7 +98,7 @@ function renderSchedules() {
       <div>
         <div class="schedule-time">${escapeText(schedule.time)}</div>
         <label class="switch mini-switch" title="啟用或停用">
-          <input class="card-toggle" type="checkbox" aria-label="啟用或停用 ${escapeText(schedule.title).replaceAll('"', '&quot;')}" ${schedule.enabled ? 'checked' : ''}>
+          <input class="card-toggle" type="checkbox" aria-label="啟用或停用 ${escapeText(schedule.title).replace(/"/g, '&quot;')}" ${schedule.enabled ? 'checked' : ''}>
           <span></span>
         </label>
       </div>
