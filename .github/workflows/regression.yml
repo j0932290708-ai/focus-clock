@@ -44,7 +44,12 @@ jobs:
         if: always()
         with:
           name: windows-interface-results
-          path: test-results/native/
+          # 不打包仍由 Electron 開啟的測試資料夾，避免 Windows EBUSY 掩蓋真正失敗原因。
+          path: |
+            test-results/native/results.json
+            test-results/native/**/error-context.md
+            test-results/native/**/trace.zip
+            test-results/native/**/*.png
           retention-days: 14
   android-interface:
     runs-on: ubuntu-latest
