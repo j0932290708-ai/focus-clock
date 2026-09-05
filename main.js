@@ -371,7 +371,7 @@ function startFocus(rawSchedule, options = {}) {
 
   focusWindow.webContents.on('before-input-event', (event, input) => {
     if (preview && isPreviewExit(input)) {
-      event.preventDefault();
+      // 不攔截預覽按鍵，讓 focus.js 的畫面層備援也有機會收到事件。
       endFocus('preview-exit');
       return;
     }
