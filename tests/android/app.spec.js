@@ -25,6 +25,8 @@ async function launch() {
   page = await webview.page();
   page.setDefaultTimeout(15000);
   await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect(page.locator('#install-app-button')).toBeDisabled();
+  await expect(page.locator('#install-app-button')).toHaveText('已安裝');
 }
 
 test.beforeEach(async () => {
@@ -37,6 +39,8 @@ test.beforeEach(async () => {
   // goto 會等新首頁完成，避免在 location.replace 尚未換頁時誤按舊畫面。
   await page.goto(new URL('index.html', page.url()).href);
   await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect(page.locator('#install-app-button')).toBeDisabled();
+  await expect(page.locator('#install-app-button')).toHaveText('已安裝');
 });
 
 test.afterEach(async ({}, info) => {
