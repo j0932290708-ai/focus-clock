@@ -18,6 +18,10 @@ const webFiles = [
   'pwa-icon-512.png'
 ];
 
+if (path.relative(projectRoot, outputDirectory) !== 'www' ||
+  (fs.existsSync(outputDirectory) && fs.lstatSync(outputDirectory).isSymbolicLink())) {
+  throw new Error('網頁輸出位置不安全，已停止建置。');
+}
 fs.rmSync(outputDirectory, { recursive: true, force: true });
 fs.mkdirSync(outputDirectory, { recursive: true });
 webFiles.forEach((file) => {

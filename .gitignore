@@ -4,5 +4,7 @@ node_modules/
 .localappdata/
 dist/
 www/
+playwright-report/
+test-results/
 *.log
 番茄鐘/
