@@ -33,8 +33,10 @@ test('桌面 CRUD、時間選單、四組快捷鍵套用、備份保存', async 
   for (const shortcut of ['CommandOrControl+Alt+F', 'CommandOrControl+Shift+P', 'Alt+Shift+P', 'CommandOrControl+Alt+P']) {
     await page.locator('#shortcut-select').selectOption(shortcut);
     await page.getByRole('button', { name: '套用快捷鍵', exact: true }).click();
-    const settings = await page.evaluate(() => window.focusClock.getSettings());
-    expect(settings.shortcutEnabled).toBe(true); expect(settings.shortcut).toBe(shortcut);
+    await expect.poll(async () => {
+      const settings = await page.evaluate(() => window.focusClock.getSettings());
+      return settings.shortcutEnabled ? settings.shortcut : '';
+    }, { timeout: 5000 }).toBe(shortcut);
   }
   await page.getByRole('checkbox', { name: '啟用或停用 桌面驗收', exact: true }).check();
   await page.getByRole('checkbox', { name: '啟用或停用 桌面驗收', exact: true }).uncheck();
@@ -80,7 +82,7 @@ test('桌面 CRUD、時間選單、四組快捷鍵套用、備份保存', async 
 test('安全測試 Shift+S、右鍵、Escape 及滑鼠和鍵盤長按退出', async () => {
   await add();
   for (const action of ['shift', 'right', 'escape', 'mouse', 'keyboard']) {
-    console.log(`驗證安全測試退出方式：${action}`);
+    console.log('驗證安全測試退出方式：' + action);
     const focus = await preview(); const closed = focus.waitForEvent('close', { timeout: 12000 });
     if (action === 'shift') await focus.keyboard.press('Shift+S').catch(() => {});
     if (action === 'right') await focus.locator('#lock-screen').click({ button: 'right' }).catch(() => {});
