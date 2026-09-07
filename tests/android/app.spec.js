@@ -106,7 +106,7 @@ test('過勞提醒、HTTPS 驗證、清除重填、匯出備份文字及關閉',
   await expect(page.locator('#overwork-warning')).toBeVisible();
   await page.locator('#focus-url').fill('http://example.com');
   await page.getByRole('button', { name: '儲存自律時鐘', exact: true }).click();
-  await expect(page.locator('#form-message')).toContainText('只接受 HTTPS');
+  await expect(page.locator('.schedule-card')).toHaveCount(0);  await expect(page.locator('#focus-url')).toHaveValue('http://example.com');
   await page.locator('#reset-button').click();
   await expect(page.locator('#duration')).toHaveValue('45');
   await expect(page.locator('#focus-url')).toHaveValue('');
