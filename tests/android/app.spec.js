@@ -102,7 +102,7 @@ test('APK 安裝辨識、新增修改、開關、重啟保存及刪除後改時�
 });
 
 test('過勞提醒、HTTPS 驗證、清除重填、匯出備份文字及關閉', async () => {
-  await page.locator('#duration').fill('61');
+  await page.locator('#title').fill('HTTPS 驗證'); await page.locator('#duration').fill('61');
   await expect(page.locator('#overwork-warning')).toBeVisible();
   await page.locator('#focus-url').fill('http://example.com');
   await page.getByRole('button', { name: '儲存自律時鐘', exact: true }).click();
