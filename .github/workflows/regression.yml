@@ -72,7 +72,18 @@ jobs:
       - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - run: npm ci
       - run: chmod +x android/gradlew
-      - run: npm run android:apk
+      - name: Build Android APK with download retry
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4; do
+            npm run android:apk && exit 0
+            if [ "$attempt" -lt 4 ]; then
+              wait_seconds=$((attempt * 20))
+              echo "Gradle download temporarily failed; retrying in ${wait_seconds}s..."
+              sleep "$wait_seconds"
+            fi
+          done
+          exit 1
       # 僅修改一次性的 CI 虛擬機，不修改使用者電腦或連接真機。
       - name: Allow this runner to use its virtual device
         run: sudo setfacl -m u:$(whoami):rw /dev/kvm
