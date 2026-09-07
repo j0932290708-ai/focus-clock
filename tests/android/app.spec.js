@@ -25,6 +25,8 @@ async function launch() {
   page = await webview.page();
   page.setDefaultTimeout(15000);
   await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect(page.locator('#install-app-button')).toBeDisabled();
+  await expect(page.locator('#install-app-button')).toHaveText('已安裝');
 }
 
 test.beforeEach(async () => {
@@ -37,6 +39,8 @@ test.beforeEach(async () => {
   // goto 會等新首頁完成，避免在 location.replace 尚未換頁時誤按舊畫面。
   await page.goto(new URL('index.html', page.url()).href);
   await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect(page.locator('#install-app-button')).toBeDisabled();
+  await expect(page.locator('#install-app-button')).toHaveText('已安裝');
 });
 
 test.afterEach(async ({}, info) => {
@@ -98,7 +102,7 @@ test('APK 安裝辨識、新增修改、開關、重啟保存及刪除後改時�
 });
 
 test('過勞提醒、HTTPS 驗證、清除重填、匯出備份文字及關閉', async () => {
-  await page.locator('#duration').fill('61');
+  await page.locator('#title').fill('HTTPS 驗證'); await page.locator('#duration').fill('61');
   await expect(page.locator('#overwork-warning')).toBeVisible();
   await page.locator('#focus-url').fill('http://example.com');
   await page.getByRole('button', { name: '儲存自律時鐘', exact: true }).click();
