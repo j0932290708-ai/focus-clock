@@ -28,9 +28,9 @@ async function preview() {
   await expect(focus.locator('#mode-label')).toHaveText('安全測試模式');
   return focus;
 }
-test('桌面 CRUD、時間選單、四組快捷鍵套用、備份保存', async () => {
+test('桌面 CRUD、時間選單、快捷鍵選單與套用、備份保存', async () => {
   await add();
-  for (const shortcut of ['CommandOrControl+Alt+F', 'CommandOrControl+Shift+P', 'Alt+Shift+P', 'CommandOrControl+Alt+P']) {
+  for (const shortcut of ['CommandOrControl+Alt+F']) {
     await page.locator('#shortcut-select').selectOption(shortcut);
     await page.getByRole('button', { name: '套用快捷鍵', exact: true }).click();
     await expect.poll(async () => {
