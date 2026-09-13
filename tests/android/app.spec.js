@@ -144,3 +144,28 @@ test('網站備案按鈕、倒數與直接結束', async () => {
   await expect(page.locator('#countdown')).not.toHaveText('--:--');
   await exit();
 });
+
+test('深色偏好、原生全螢幕進出、到時鈴聲與返回', async () => {
+  await expect(page.locator('#web-app-note')).toBeHidden();
+  await expect(page.locator('.platform-status')).toHaveCount(0);
+  if (await page.locator('html').getAttribute('data-theme') !== 'dark') await page.locator('[data-theme-toggle]').click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await add({ duration: '1' });
+  await page.getByRole('button', { name: '安全測試', exact: true }).click();
+  await expect(page.locator('#fullscreen-button')).toHaveText('離開全螢幕');
+  expect(await page.evaluate(() => window.focusDisplay.enabled)).toBe(true);
+  await page.locator('#fullscreen-button').click();
+  await expect(page.locator('#fullscreen-button')).toHaveText('全螢幕');
+  expect(await page.evaluate(() => window.focusDisplay.enabled)).toBe(false);
+  await page.locator('#fullscreen-button').click();
+  await expect(page.locator('#fullscreen-button')).toHaveText('離開全螢幕');
+  // Accelerate this test session only; the normal timer and media playback still run.
+  await page.evaluate(() => { session.endsAt = Date.now() + 250; });
+  await expect(page.locator('#completion-dialog')).toBeVisible();
+  await expect(page.locator('#completion-message')).toContainText('鈴聲已響起');
+  await page.locator('#finish-session').click();
+  await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.focusDisplay.enabled)).toBe(false);
+  await expect(page.locator('#alarm-dialog')).toBeHidden();
+});
