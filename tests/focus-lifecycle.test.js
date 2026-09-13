@@ -16,7 +16,7 @@ async function focus({ desktop = false, malformed = false, preview = false } = {
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, { hidden: true, style: {}, events: {},
         addEventListener(name, fn) { this.events[name] = fn; }, focus() { document.activeElement = this; },
-        removeAttribute(name) { delete this[name]; }, setPointerCapture() {} });
+        removeAttribute(name) { delete this[name]; }, setPointerCapture() {}, showModal() { this.open = true; } });
       return elements.get(selector);
     }, addEventListener: (name, fn) => { documentEvents[name] = fn; } };
   const context = { document, window: { focusClockLogic: logic, addEventListener: (name, fn) => { windowEvents[name] = fn; },
@@ -65,8 +65,11 @@ test('FC-P2-06：內建備案、休息提醒與倒數完成不依賴遠端頁面
   app.element('#continue-button').events.click(); assert.equal(app.element('#rest-reminder').hidden, true);
   app.element('#use-lock-screen').events.click(); assert.equal(app.element('#web-area').hidden, true);
   assert.equal(app.element('#lock-screen').hidden, false);
-  app.advance(60 * 60000); assert.deepEqual(app.navigations, ['index.html?focus=completed']);
+  app.advance(60 * 60000); assert.equal(app.element('#completion-dialog').open, true);
+  assert.deepEqual(app.navigations, []);
   assert.equal(app.snapshots.has('focus-clock-current'), false);
+  app.element('#finish-session').events.click();
+  assert.deepEqual(app.navigations, ['index.html?focus=completed']);
 });
 test('FC-P1-01：損壞專注快照返回首頁，不停在空白倒數', async () => {
   const app = await focus({ malformed: true }); assert.deepEqual(app.navigations, ['index.html']);
