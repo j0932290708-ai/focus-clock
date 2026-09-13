@@ -28,6 +28,27 @@ async function preview() {
   await expect(focus.locator('#mode-label')).toHaveText('安全測試模式');
   return focus;
 }
+
+test('深色設定與 MP3 試聽、保存、完成通知鈴聲', async () => {
+  if (await page.locator('html').getAttribute('data-theme') !== 'dark') await page.locator('[data-theme-toggle]').click();
+  await page.locator('#ringtone-file').setInputFiles(path.join(__dirname, '../fixtures/chime.mp3'));
+  await expect(page.locator('#ringtone-name')).toHaveText('chime.mp3');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('#ringtone-name')).toHaveText('chime.mp3');
+  await page.locator('#preview-ringtone').click();
+  await expect(page.locator('#preview-ringtone')).toHaveText('停止試聽');
+  await page.locator('#preview-ringtone').click();
+  // Exercise the actual main-window completion IPC without waiting a full minute.
+  await desktop.evaluate(({ BrowserWindow }) => {
+    const main = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/index.html'));
+    main.webContents.send('focus-status-changed', { reason: 'completed' });
+  });
+  await expect(page.locator('#alarm-dialog')).toBeVisible();
+  await expect(page.locator('#alarm-message')).toContainText('鈴聲已響起');
+  await page.locator('#stop-alarm').click();
+  await expect(page.locator('#alarm-dialog')).toBeHidden();
+});
 test('桌面 CRUD、時間選單、快捷鍵選單與套用、備份保存', async () => {
   await add();
   for (const shortcut of ['CommandOrControl+Alt+F']) {
