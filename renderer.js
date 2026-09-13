@@ -149,7 +149,7 @@ form.addEventListener('submit', async (event) => {
   schedules = result.schedules;
   renderSchedules();
   resetForm();
-  showMessage('已儲存；請保持程式執行，並留意上方的平台限制。');
+  showMessage('自律時鐘已儲存。');
 });
 
 list.addEventListener('click', async (event) => {
@@ -281,6 +281,7 @@ function updateClock() {
 
 window.focusClock.onSchedulesChanged(loadSchedules);
 window.focusClock.onFocusStatusChanged((detail) => {
+  if (detail?.reason === 'completed' && !detail.alarmHandled) window.showCompletionAlarm?.();
   showMessage(detail?.shouldRest ? '專注完成！請喝水、活動身體並讓眼睛休息。' : '專注時間已結束。');
 });
 window.focusClock.onSettingsChanged((settings) => {

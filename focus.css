@@ -52,6 +52,50 @@ header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center
 .unlock-card .danger-button { border-color: #b43d2c; background: #b43d2c; color: white; }
 [hidden] { display: none !important; }
 
+/* The clock fills the usable phone screen, including landscape and safe areas. */
+.focus-shell { height: 100vh; height: 100dvh; grid-template-rows: auto minmax(0, 1fr); }
+header { min-height: 74px; padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 12px max(18px, env(safe-area-inset-left)); grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; }
+.focus-controls { display: flex; gap: 8px; }
+.focus-controls button, .arm-alarm { min-height: 44px; padding: 8px 12px; border: 1px solid #77887c; border-radius: 12px; background: #263d30; color: #edf4ef; cursor: pointer; }
+.lock-screen { padding: 24px 16px 90px; }
+.lock-screen .timer { z-index: 1; }
+.lock-screen .timer small { font-size: 14px; margin-bottom: 16px; }
+.lock-screen .timer strong { display: block; font-size: clamp(56px, 14vw, 170px); line-height: 1.15; letter-spacing: -.04em; font-weight: 600; }
+.lock-screen p { font-size: 24px; margin: 28px 0 12px; }
+.lock-screen .tomato { display: none; }
+.compact-timer { padding: 10px 16px; text-align: center; background: #17211c; color: #fff; }
+.compact-timer strong { font-size: 24px; font-variant-numeric: tabular-nums; margin-left: 12px; }
+.arm-alarm { position: fixed; z-index: 35; bottom: max(16px, env(safe-area-inset-bottom)); left: max(16px, env(safe-area-inset-left)); }
+.direct-exit-button { bottom: max(16px, env(safe-area-inset-bottom)); right: max(16px, env(safe-area-inset-right)); }
+dialog { max-width: min(440px, calc(100vw - 32px)); border: 1px solid #607568; border-radius: 22px; padding: 28px; background: #fffaf1; color: #17211c; text-align: center; }
+dialog::backdrop { background: #0b120dd9; }
+dialog button { min-height: 48px; margin: 8px; border: 0; border-radius: 12px; padding: 12px 18px; background: #2e6b51; color: white; }
+dialog p { line-height: 1.7; }
+[data-theme="light"] .lock-screen { background: radial-gradient(circle at 75% 20%, #e6eddf, #f7f3eb 60%); color: #17211c; }
+[data-theme="light"] .lock-screen .timer small, [data-theme="light"] .lock-screen > span { color: #526358; }
+[data-theme="light"] .lock-screen::before, [data-theme="light"] .lock-screen::after { border-color: #63756626; }
+[data-theme="dark"] .lock-screen { background: radial-gradient(circle at 75% 20%, #263d30, #0d1510 65%); }
+[data-theme="dark"] .unlock-card, [data-theme="dark"] .rest-card, [data-theme="dark"] dialog { background: #19231d; color: #edf4ef; }
+[data-theme="dark"] .unlock-card p, [data-theme="dark"] .rest-card p { color: #bac9bf; }
+[data-theme="dark"] .unlock-card button { color: #edf4ef; }
+@media (max-width: 640px) {
+  .focus-shell { grid-template-rows: auto minmax(0, 1fr); }
+  header { padding: max(10px, env(safe-area-inset-top)) 12px 10px; min-height: 76px; gap: 6px; grid-template-columns: minmax(0, 1fr) auto; }
+  .focus-title { gap: 8px; }
+  .focus-title strong { max-width: 120px; }
+  .focus-controls { gap: 5px; }
+  .focus-controls button { padding: 6px 10px; font-size: 12px; }
+  .lock-screen p { font-size: 22px; }
+  .lock-screen .timer strong { font-size: clamp(48px, 14vw, 90px); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  header { min-height: 60px; }
+  .lock-screen { padding: 4px 16px 66px; }
+  .lock-screen .timer small { margin-bottom: 2px; }
+  .lock-screen .timer strong { font-size: clamp(44px, 20vh, 100px); }
+  .lock-screen p, .lock-screen > span { display: none; }
+}
+
 @media (max-width: 640px) {
   .focus-shell { grid-template-rows: 92px 1fr; }
   header { grid-template-columns: minmax(0, 1fr) auto; padding: 0 14px; }

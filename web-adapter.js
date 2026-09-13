@@ -42,6 +42,7 @@
   async function installApp() {
     const button = document.querySelector('#install-app-button');
     if (isStandalone()) {
+      document.querySelector('#web-app-note').hidden = true;
       button.textContent = '已安裝';
       button.disabled = true;
       showInstallHelp('番茄鐘已經安裝完成，可以從主畫面或桌面圖示開啟。');
@@ -54,6 +55,7 @@
       installPrompt = null;
       button.dataset.installReady = 'false';
       if (choice.outcome === 'accepted') {
+        document.querySelector('#web-app-note').hidden = true;
         button.textContent = '安裝完成';
         button.disabled = true;
         showInstallHelp('安裝完成，現在可以從主畫面或桌面圖示開啟番茄鐘。');
@@ -212,6 +214,7 @@
   });
   window.addEventListener('appinstalled', () => {
     installPrompt = null;
+    document.querySelector('#web-app-note').hidden = true;
     const button = document.querySelector('#install-app-button');
     if (!button) return;
     button.dataset.installReady = 'false';
@@ -224,23 +227,23 @@
     if (isNativeAndroid) {
       installButton.textContent = '已安裝';
       installButton.disabled = true;
-      document.querySelector('#platform-note').textContent = 'Android 前景版：必須保持 App 開啟。切到背景、熄屏、關閉或被系統回收時，不保證準時啟動。';
-      document.querySelector('#platform-safety').textContent = 'Android App 不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
+
+
     } else {
-      document.querySelector('#web-app-note').hidden = false;
+      document.querySelector('#web-app-note').hidden = isStandalone();
       installButton.addEventListener('click', installApp);
       if (isStandalone()) {
         installButton.textContent = '已安裝';
         installButton.disabled = true;
       }
-      document.querySelector('#platform-note').textContent = '網頁前景版：必須保持頁面開啟。背景凍結、熄屏或關閉瀏覽器時，不保證準時啟動。';
-      document.querySelector('#platform-safety').textContent = '手機版不會阻止切換其他 App；專注畫面提供直接結束按鈕。';
+
+
     }
     document.querySelectorAll('.desktop-only').forEach((element) => { element.hidden = true; });
     warn(dataWarning);
     const result = new URLSearchParams(location.search).get('focus');
     if (result) {
-      setTimeout(() => statusListeners.forEach((callback) => callback({ reason: result })), 0);
+      setTimeout(() => statusListeners.forEach((callback) => callback({ reason: result, alarmHandled: true })), 0);
       history.replaceState({}, '', 'index.html');
     }
   });

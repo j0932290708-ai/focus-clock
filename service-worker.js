@@ -1,7 +1,7 @@
 const cachePrefix = `focus-clock-${new URL(self.registration.scope).pathname}-`;
-const cacheName = `${cachePrefix}v6`;
+const cacheName = `${cachePrefix}v7`;
 const appFiles = [
-  './', './index.html', './styles.css', './logic.js', './web-adapter.js', './renderer.js',
+  './', './index.html', './styles.css', './preferences.js', './personal-settings.js', './alarm.js', './alarm.wav', './display.js', './logic.js', './web-adapter.js', './renderer.js',
   './focus.html', './focus.css', './focus.js', './manifest.json',
   './pwa-icon-192.png', './pwa-icon-512.png'
 ];

@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'self' blob:">
   <meta name="theme-color" content="#17211c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>專注番茄鐘</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="pwa-icon-192.png">
   <link rel="stylesheet" href="styles.css">
+  <script src="preferences.js"></script>
 </head>
 <body>
   <main class="app-shell">
@@ -62,11 +63,15 @@
       <button id="install-app-button" class="install-app-button" type="button">安裝 App</button>
     </section>
 
-    <section class="platform-status" aria-label="執行能力">
-      <strong id="running-state" role="status">程式執行中；錯過後依排程設定最多補跑 5 分鐘。</strong>
-      <p id="platform-note">Windows 需保持程式執行；關機或休眠時不保證準時啟動。</p>
-      <p id="platform-safety">自律用全螢幕工具，不是系統安全鎖；不會暫停其他程式。</p>
-      <p id="data-warning" class="warning" role="alert" hidden></p>
+    <p id="data-warning" class="warning" role="alert" hidden></p>
+    <section class="personal-settings" aria-labelledby="personal-settings-title">
+      <div class="settings-heading"><h2 id="personal-settings-title">我的偏好</h2><button data-theme-toggle type="button" class="secondary-button" aria-pressed="false">深色模式</button></div>
+      <div class="ringtone-row"><div><strong>計時結束鈴聲</strong><p id="ringtone-name">內建鈴聲</p></div>
+        <div class="ringtone-actions"><button id="choose-ringtone" type="button" class="secondary-button">選擇 MP3</button><button id="preview-ringtone" type="button" class="secondary-button">試聽鈴聲</button><button id="reset-ringtone" type="button" class="text-button">恢復內建</button></div>
+      </div>
+      <input id="ringtone-file" type="file" accept=".mp3,audio/mpeg" hidden>
+      <p class="help">可選擇 10 MB 以內的 MP3，只儲存在這台裝置。建議先試聽，確認裝置音量。</p>
+      <p id="ringtone-message" role="status"></p>
     </section>
 
     <section class="workspace">
@@ -174,6 +179,10 @@
     <form method="dialog"><button>關閉</button></form>
   </dialog>
 
+  <dialog id="alarm-dialog" aria-labelledby="alarm-title"><h2 id="alarm-title">專注完成！</h2><p id="alarm-message">休息一下，準備迎接下一段專注。</p><button id="retry-alarm" type="button" hidden>播放鈴聲</button><button id="stop-alarm" type="button" autofocus>停止鈴聲</button></dialog>
+  <script src="display.js"></script>
+  <script src="alarm.js"></script>
+  <script src="personal-settings.js"></script>
   <script src="logic.js"></script>
   <script src="web-adapter.js"></script>
   <script src="renderer.js"></script>
