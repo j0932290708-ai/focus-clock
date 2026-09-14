@@ -1,7 +1,9 @@
 (() => {
   const capacitor = window.Capacitor;
-  if (!capacitor?.isNativePlatform?.() || !capacitor.registerPlugin) return;
-  const plugin = capacitor.registerPlugin('FocusDisplay');
+  if (!capacitor?.isNativePlatform?.()) return;
+  // Plain HTML receives native plugin stubs directly; bundled clients may use registerPlugin.
+  const plugin = capacitor.Plugins?.FocusDisplay || capacitor.registerPlugin?.('FocusDisplay');
+  if (!plugin?.setFullscreen) return;
   let enabled = false;
   window.focusDisplay = {
     get enabled() { return enabled; },
