@@ -41,11 +41,32 @@ test('已安裝主畫面 App 不顯示安裝卡，也沒有原平台說明卡', 
   await expect(page.locator('.platform-status')).toHaveCount(0);
 });
 test('Android App 不顯示安裝區塊', async ({ page }) => {
-  await page.addInitScript(() => { window.Capacitor = { isNativePlatform: () => true }; });
+  await page.addInitScript(() => {
+    window.__nativeDisplayCalls = [];
+    window.Capacitor = {
+      isNativePlatform: () => true,
+      Plugins: { FocusDisplay: { setFullscreen: async ({ enabled }) => {
+        window.__nativeDisplayCalls.push(enabled);
+        return { enabled };
+      } } }
+    };
+  });
   await page.goto('./');
   await expect(page.locator('html')).toHaveAttribute('data-platform', 'android');
   await expect(page.locator('#web-app-note')).toBeHidden();
   await expect(page.locator('.platform-status')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__nativeDisplayCalls)).toEqual([false]);
+  await start(page);
+  await expect(page.locator('#fullscreen-button')).toHaveText('離開全螢幕');
+  await page.locator('#fullscreen-button').click();
+  await expect(page.locator('#fullscreen-button')).toHaveText('全螢幕');
+  await page.locator('#fullscreen-button').click();
+  await expect(page.locator('#fullscreen-button')).toHaveText('離開全螢幕');
+  expect(await page.evaluate(() => window.__nativeDisplayCalls)).toEqual([true, false, true]);
+  await page.locator('#direct-exit-button').click();
+  await page.locator('#confirm-unlock').click();
+  await expect(page.locator('#schedule-form')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__nativeDisplayCalls)).toEqual([false]);
 });
 test('完成安裝事件即時隱藏安裝區塊', async ({ page }) => {
   await page.goto('./');
