@@ -120,6 +120,35 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--green); out
 
 footer { display: flex; justify-content: space-between; padding: 17px 4px 0; color: var(--muted); font-size: 10px; }
 
+.personal-settings { margin: 0 0 22px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--cream); }
+.settings-heading, .ringtone-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.settings-heading { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.settings-heading h2 { margin: 0; font-size: 17px; }
+.personal-settings .secondary-button { padding: 0 16px; min-height: 44px; }
+.ringtone-row > div:first-child { min-width: 0; }
+.ringtone-row strong { font-size: 14px; }
+#ringtone-name { margin: 5px 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.ringtone-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+#ringtone-message { margin: 8px 0 0; color: var(--green); font-size: 13px; }
+button:disabled { cursor: default; opacity: .6; }
+:root[data-theme="dark"] { --paper: #101614; --ink: #edf4ef; --muted: #abb9b0; --line: #3b4a41; --cream: #19231d; --green: #8bd5af; --red-dark: #ffad9d; }
+[data-theme="dark"] .hero { background: #20392c; }
+[data-theme="dark"] .panel { background: #141e18; }
+[data-theme="dark"] .count, [data-theme="dark"] .switch-row, [data-theme="dark"] .schedule-card.off, [data-theme="dark"] .shortcut-settings { background: #243029; }
+[data-theme="dark"] .primary-button { background: #a73d2e; color: #fff; }
+[data-theme="dark"] .web-app-note { background: #203a2c; border-color: #4b6f5d; }
+[data-theme="dark"] .install-app-button { background: #317452; }
+[data-theme="dark"] .install-help { color: #bcdfcb; }
+[data-theme="dark"] .warning { background: #40331d; color: #f5d49a; border-color: #806331; }
+[data-theme="dark"] textarea, [data-theme="dark"] dialog button { background: #243029; color: var(--ink); border: 1px solid var(--line); }
+[data-theme="dark"] .switch input:checked + span { background: #317452; }
+@media (max-width: 640px) {
+  .personal-settings { padding: 18px 16px; }
+  .ringtone-row { align-items: stretch; flex-direction: column; }
+  .ringtone-actions { gap: 8px; }
+  .ringtone-actions button { flex: 1; padding: 0 10px; min-height: 44px; }
+}
+
 @media (max-width: 880px) {
   .workspace { grid-template-columns: 1fr; }
   .hero { align-items: flex-start; }

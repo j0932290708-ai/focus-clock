@@ -8,6 +8,7 @@ let wakePending = false;
 let restShown = false;
 let webFocusEnded = false;
 let previousFocus;
+let completed = false;
 const isWebApp = !window.focusSession;
 const $ = (selector) => document.querySelector(selector);
 
@@ -46,16 +47,17 @@ function formatRemaining(milliseconds) {
 }
 
 function tick() {
-  if (!session) return;
+  if (!session || completed) return;
   const remaining = session.endsAt - Date.now();
   $('#countdown').textContent = formatRemaining(remaining);
+  $('#compact-countdown').textContent = formatRemaining(remaining);
   if (session.duration > 60 && !restShown && Date.now() - session.startedAt >= 60 * 60000) {
     restShown = true;
     $('#rest-reminder').hidden = false;
   }
   if (remaining <= 0) {
     clearInterval(timerId);
-    if (isWebApp) endWebFocus('completed');
+    if (isWebApp) completeFocus();
   }
 }
 
@@ -97,7 +99,7 @@ async function releaseWakeLock() {
   if (lock) await lock.release().catch(() => {});
 }
 async function keepScreenAwake() {
-  if (!isWebApp || !session || webFocusEnded || document.visibilityState !== 'visible' ||
+  if (!isWebApp || !session || webFocusEnded || completed || document.visibilityState !== 'visible' ||
     !('wakeLock' in navigator) || wakeLock || wakePending) return;
   wakePending = true;
   try {
@@ -110,6 +112,7 @@ async function keepScreenAwake() {
 }
 function cleanup() {
   cancelEmergencyHold(); clearInterval(timerId); clearTimeout(frameTimer); releaseWakeLock();
+  window.focusAlarm?.stop();
 }
 function showNotice(message) {
   $('#focus-notice-message').textContent = message;
@@ -139,7 +142,10 @@ async function initialize() {
     $('#unlock-description').textContent = '倒數還沒結束，確認後會立即回到排程畫面。';
     $('#confirm-unlock').textContent = '直接結束';
     keepScreenAwake();
+    $('#arm-alarm').hidden = false;
+    requestFullscreen(false);
   } else {
+    $('#fullscreen-button').hidden = true;
     $('#mode-label').textContent = session.preview ? '安全測試模式' : '專注進行中';
     $('#exit-hint').textContent = session.preview ? 'Shift+S、右鍵或按住五秒退出' : '按住滑鼠／Enter／空白鍵五秒解鎖';
   }
@@ -195,6 +201,7 @@ window.addEventListener('contextmenu', (event) => {
 window.addEventListener('pagehide', cleanup);
 window.addEventListener('pageshow', (event) => {
   if (!event.persisted || !isWebApp) return;
+  if (completed) return;
   session = readWebSession();
   if (!session) { endWebFocus('ended'); return; }
   webFocusEnded = false;
@@ -225,4 +232,59 @@ focusApi.onLoadFailed((detail) => {
   $('#web-area').hidden = true; $('#load-error').hidden = false;
   $('#load-error-message').textContent = detail.message + ' 倒數仍會繼續，時間到會自動解除。';
 });
+let fullscreenPending = false;
+async function requestFullscreen(userInitiated = true) {
+  if (!isWebApp) { $('#fullscreen-button').hidden = true; return; }
+  if (fullscreenPending) return;
+  fullscreenPending = true;
+  $('#fullscreen-button').disabled = true;
+  const root = document.documentElement;
+  try {
+    if (window.focusDisplay) await window.focusDisplay.setFullscreen(userInitiated ? !window.focusDisplay.enabled : true);
+    else if (document.fullscreenElement) { if (userInitiated) await document.exitFullscreen(); }
+    else if (root.requestFullscreen) await root.requestFullscreen();
+    else if (userInitiated) showNotice('目前瀏覽器不支援全螢幕，可從主畫面開啟已安裝的番茄鐘。');
+  } catch { if (userInitiated) showNotice('無法進入全螢幕，倒數會繼續。'); }
+  finally {
+    fullscreenPending = false;
+    $('#fullscreen-button').disabled = false;
+    $('#fullscreen-button').textContent = (window.focusDisplay?.enabled || document.fullscreenElement) ? '離開全螢幕' : '全螢幕';
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  $('#fullscreen-button').textContent = document.fullscreenElement ? '離開全螢幕' : '全螢幕';
+});
+$('#fullscreen-button').addEventListener('click', () => { requestFullscreen(); armAlarm(); });
+async function armAlarm() {
+  const ready = await window.focusAlarm?.arm();
+  if (!completed) {
+    $('#arm-alarm').hidden = Boolean(ready);
+    if (!ready) showNotice('鈴聲尚未啟用，請點「啟用結束鈴聲」重試。');
+  }
+}
+$('#arm-alarm').addEventListener('click', armAlarm);
+async function playCompletionAlarm() {
+  const played = await window.focusAlarm?.play();
+  $('#play-completion-alarm').hidden = Boolean(played);
+  $('#completion-message').textContent = played ? '鈴聲已響起，休息一下吧。' : '時間到了！點「播放鈴聲」即可響鈴。';
+}
+function completeFocus() {
+  if (completed) return;
+  completed = true;
+  clearInterval(timerId); clearTimeout(frameTimer); cancelEmergencyHold();
+  releaseWakeLock();
+  $('#rest-reminder').hidden = true;
+  $('#unlock-confirm').hidden = true;
+  $('.focus-shell').inert = false;
+  $('#direct-exit-button').inert = false;
+  $('#direct-exit-button').hidden = true;
+  $('#arm-alarm').hidden = true;
+  try { sessionStorage.removeItem('focus-clock-current'); } catch {}
+  $('#completion-dialog').showModal();
+  $('#finish-session').focus();
+  playCompletionAlarm();
+}
+$('#play-completion-alarm').addEventListener('click', playCompletionAlarm);
+$('#finish-session').addEventListener('click', () => endWebFocus('completed'));
+$('#completion-dialog').addEventListener('cancel', event => { event.preventDefault(); endWebFocus('completed'); });
 initialize();

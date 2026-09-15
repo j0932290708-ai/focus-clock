@@ -3,10 +3,10 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const files = new Set(['index.html', 'focus.html', 'styles.css', 'focus.css', 'logic.js',
+const files = new Set(['index.html', 'focus.html', 'styles.css', 'preferences.js', 'personal-settings.js', 'alarm.js', 'alarm.wav', 'display.js', 'focus.css', 'logic.js',
   'renderer.js', 'web-adapter.js', 'focus.js', 'service-worker.js', 'manifest.json',
   'pwa-icon-192.png', 'pwa-icon-512.png']);
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.wav': 'audio/wav' };
 http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   const file = pathname === '/focus-clock/' ? 'index.html' : pathname.replace(/^\/focus-clock\//, '');

@@ -47,7 +47,12 @@
       "focus.css",
       "focus.js",
       "icon.png",
-      "icon-256.png"
+      "icon-256.png",
+      "preferences.js",
+      "personal-settings.js",
+      "alarm.js",
+      "alarm.wav",
+      "display.js"
     ],
     "win": {
       "target": "portable",

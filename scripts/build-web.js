@@ -5,7 +5,7 @@ const projectRoot = path.resolve(__dirname, '..');
 const outputDirectory = path.join(projectRoot, 'www');
 const webFiles = [
   'index.html',
-  'styles.css',
+  'styles.css', 'preferences.js', 'personal-settings.js', 'alarm.js', 'alarm.wav', 'display.js',
   'logic.js',
   'web-adapter.js',
   'renderer.js',

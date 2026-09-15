@@ -2,10 +2,11 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: https:; frame-src https:; object-src 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: https:; frame-src https:; media-src 'self' blob:; object-src 'none'">
   <title>專注進行中</title>
   <link rel="stylesheet" href="focus.css">
+  <script src="preferences.js"></script>
 </head>
 <body>
   <div class="focus-shell">
@@ -17,10 +18,7 @@
           <strong id="session-title">讀書</strong>
         </div>
       </div>
-      <div class="timer">
-        <small>剩餘時間</small>
-        <strong id="countdown">--:--</strong>
-      </div>
+<div class="focus-controls"><button data-theme-toggle type="button" aria-pressed="false">深色模式</button><button id="fullscreen-button" type="button">全螢幕</button></div>
       <button id="emergency-button" type="button" aria-label="按住滑鼠、Enter 或空白鍵五秒，申請緊急解鎖">
         <span id="exit-hint">長按 5 秒緊急解鎖</span>
         <i id="hold-progress"></i>
@@ -29,12 +27,13 @@
 
     <main id="focus-content">
       <section id="lock-screen" class="lock-screen" hidden>
-        <div class="quote-mark">“</div>
-        <p>現在的專心，<br>會成為未來的底氣。</p>
+<div class="timer"><small>剩餘時間</small><strong id="countdown">--:--</strong></div>
+        <p>專心，留給現在。</p>
         <span>暫時放下其他事情，完成這一段時間。</span>
         <div class="tomato">番</div>
       </section>
       <section id="web-area" class="web-area" hidden>
+<div class="compact-timer">剩餘時間 <strong id="compact-countdown">--:--</strong></div>
         <aside id="web-help" class="web-help" hidden>
           <p id="web-help-message" role="status">網站可能禁止嵌入。如果看不到內容，可切回內建畫面；倒數仍會繼續。</p>
           <button id="use-lock-screen" type="button">改用內建專注畫面</button>
@@ -51,6 +50,7 @@
     </main>
   </div>
 
+<button id="arm-alarm" class="arm-alarm" type="button" hidden>啟用結束鈴聲</button>
   <button id="direct-exit-button" class="direct-exit-button" type="button" hidden>直接結束</button>
 
   <aside id="focus-notice" class="focus-notice" hidden>
@@ -79,6 +79,9 @@
     </div>
   </div>
 
+  <dialog id="completion-dialog" aria-labelledby="completion-title"><h2 id="completion-title">專注完成！</h2><p id="completion-message">做得很好，休息一下吧。</p><button id="play-completion-alarm" type="button" hidden>播放鈴聲</button><button id="finish-session" type="button" autofocus>停止鈴聲並返回</button></dialog>
+  <script src="display.js"></script>
+  <script src="alarm.js"></script>
   <script src="logic.js"></script>
   <script src="focus.js"></script>
 </body>

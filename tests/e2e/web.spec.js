@@ -60,7 +60,10 @@ test('離線排程到點與倒數完成', async ({ page, context }) => {
   await page.goto('./'); await add(page, { enabled: true }); await readyOffline(page);
   await context.setOffline(true); await page.clock.fastForward(30 * 60000);
   await expect(page).toHaveURL(/focus\.html\?web=1/); await expect(page.locator('#session-title')).toHaveText('回歸測試');
-  await page.clock.fastForward(45 * 60000); await expect(page).toHaveURL(/index\.html/);
+  await page.clock.fastForward(45 * 60000);
+  await expect(page.getByRole('heading', { name: '專注完成！', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '停止鈴聲並返回', exact: true }).click();
+  await expect(page).toHaveURL(/index\.html/);
   await expect(page.getByRole('heading', { name: '專注番茄鐘', exact: true })).toBeVisible();
 });
 test('到點配額滿仍啟動；結束與重載不重複', async ({ page }) => {
